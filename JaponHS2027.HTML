@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viaje a Japón - Hilsa & Tú</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --primary: #bc002d;
+            --primary-hover: #990024;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent-sleep: #e0f2fe;
+            --accent-activity: #fef3c7;
+            --accent-transport: #dcfce7;
+            --accent-show: #fce7f3;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); display: flex; flex-direction: column; min-height: 100vh; }
+
+        header { background-color: var(--card-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .header-content { max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;}
+        .logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
+        
+        .external-links { display: flex; gap: 0.5rem; }
+        .ext-btn { text-decoration: none; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.8rem; border-radius: 0.375rem; border: 1px solid var(--border); color: var(--text-dark); background: #f1f5f9; transition: all 0.2s; }
+        .ext-btn:hover { background: #e2e8f0; }
+
+        .nav-tabs { display: flex; gap: 0.5rem; background: #f1f5f9; padding: 0.25rem; border-radius: 0.5rem; flex-wrap: wrap; }
+        .tab-btn { border: none; background: transparent; padding: 0.6rem 1.2rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; color: var(--text-muted); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; }
+        .tab-btn.active { background-color: var(--card-bg); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        main { max-width: 1400px; margin: 1.5rem auto; padding: 0 1.5rem; width: 100%; flex: 1; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Banner Alojamientos */
+        .accommodation-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .acc-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: space-between; }
+        .acc-info h4 { font-size: 0.9rem; color: var(--text-dark); }
+        .acc-info p { font-size: 0.8rem; color: var(--text-muted); }
+        .acc-link { color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 600; }
+
+        /* Controles y Grilla 24hs */
+        .schedule-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .btn-add-event { background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 0.375rem; cursor: pointer; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
+        .btn-add-event:hover { background: var(--primary-hover); }
+
+        .schedule-grid-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+        .schedule-table { width: 100%; border-collapse: collapse; min-width: 900px; table-layout: fixed; }
+        .schedule-table th, .schedule-table td { border: 1px solid var(--border); padding: 0.4rem; text-align: center; font-size: 0.8rem; height: 40px; vertical-align: top; }
+        .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
+        .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; }
+
+        .event-block { border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: left; height: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+        .event-block:hover { transform: scale(1.01); }
+        .event-sleep { background-color: var(--accent-sleep); color: #0369a1; }
+        .event-actividad { background-color: var(--accent-activity); color: #b45309; }
+        .event-transporte { background-color: var(--accent-transport); color: #15803d; }
+        .event-show { background-color: var(--accent-show); color: #be185d; }
+
+        /* Contenedor del Mapa */
+        .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; }
+        .map-container iframe { width: 100%; height: 100%; border: 0; }
+
+        /* Recomendaciones & Shows */
+        .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .recom-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
+        .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .badge-anime { background: #fce7f3; color: #be185d; }
+        .badge-comida { background: #ffedd5; color: #c2410c; }
+        .badge-show { background: #e0e7ff; color: #4338ca; }
+
+        /* Modal Generico */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 200; }
+        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 0.5rem; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .close-btn { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.375rem; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <i class="fa-solid fa-torii-gate"></i> Japón Otoño 2026
+            </div>
+            
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('calendario')">
+                    <i class="fa-regular fa-calendar-days"></i> Itinerario 24hs
+                </button>
+                <button class="tab-btn" onclick="switchTab('transporte')">
+                    <i class="fa-solid fa-map-location-dot"></i> Mapa & Rutas
+                </button>
+                <button class="tab-btn" onclick="switchTab('reels')">
+                    <i class="fa-solid fa-film"></i> Recomendaciones
+                </button>
+                <button class="tab-btn" onclick="switchTab('shows')">
+                    <i class="fa-solid fa-ticket"></i> Shows & Eventos
+                </button>
+            </nav>
+
+            <div class="external-links">
+                <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vStQNNb6BfPixR9FmDBmKMyY2Gf97AuAdmCs_EpQVoxnr-MSVls9z5efmxAuboZn4CLgwrfG_rBWHQ9/pubhtml" target="_blank" class="ext-btn"><i class="fa-solid fa-table"></i> Google Sheet</a>
+                <a href="https://www.google.com/maps/d/edit?mid=1kXNuTtK9xNF0h1ViVjEfLD9scbzoLQU&usp=sharing" target="_blank" class="ext-btn"><i class="fa-solid fa-map"></i> Google My Maps</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- PESTAÑA 1: ITINERARIO 24HS -->
+        <section id="calendario" class="tab-content active">
+            <div class="accommodation-bar" id="acc-container">
+                <!-- Se poblará desde la pestaña Alojamientos -->
+            </div>
+
+            <div class="schedule-controls">
+                <div>
+                    <h3>Distribución Horaria (00:00 - 24:00)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Selecciona un bloque para ver detalles o agrega nuevas actividades.</p>
+                </div>
+                <button class="btn-add-event" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Añadir Evento</button>
+            </div>
+
+            <div class="schedule-grid-container">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="time-col">Hora</th>
+                            <th>Lun 1</th>
+                            <th>Mar 2</th>
+                            <th>Mié 3</th>
+                            <th>Jue 4</th>
+                            <th>Vie 5</th>
+                            <th>Sáb 6</th>
+                            <th>Dom 7</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grid-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 2: TRANSPORTE Y MAPA -->
+        <section id="transporte" class="tab-content">
+            <h3>Mapa de Rutas y Objetivos Confirmados</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">
+                Visualiza los marcadores guardados en Google My Maps para coordinar traslados y tiempos.
+            </p>
+            <div class="map-container">
+                <iframe src="https://www.google.com/maps/d/embed?mid=1kXNuTtK9xNF0h1ViVjEfLD9scbzoLQU"></iframe>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 3: RECOMENDACIONES -->
+        <section id="reels" class="tab-content">
+            <h3>Recomendaciones & Spots de Instagram/TikTok</h3>
+            <div class="recom-grid" id="recom-container">
+                <!-- Se poblará dinámicamente -->
+            </div>
+        </section>
+
+        <!-- PESTAÑA 4: SHOWS -->
+        <section id="shows" class="tab-content">
+            <h3>Cartelera de Shows & Conciertos</h3>
+            <div class="recom-grid" id="shows-container">
+                <!-- Se poblará dinámicamente -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Detalle Evento -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Detalles</h3>
+                <button class="close-btn" onclick="closeModal('eventModal')">&times;</button>
+            </div>
+            <div id="modalBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-muted);">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulario Agregar Evento -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Añadir Nueva Actividad</h3>
+                <button class="close-btn" onclick="closeModal('addModal')">&times;</button>
+            </div>
+            <form id="addEventForm" onsubmit="saveEvent(event)">
+                <div class="form-group">
+                    <label>Título de la actividad / lugar</label>
+                    <input type="text" id="ev-title" required placeholder="Ej: Visita al Parque de Nara">
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Día (0=Lun, 6=Dom)</label>
+                        <select id="ev-day">
+                            <option value="0">Lunes 1</option>
+                            <option value="1">Martes 2</option>
+                            <option value="2">Miércoles 3</option>
+                            <option value="3">Jueves 4</option>
+                            <option value="4">Viernes 5</option>
+                            <option value="5">Sábado 6</option>
+                            <option value="6">Domingo 7</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Hora Inicio (0-23)</label>
+                        <input type="number" id="ev-hour" min="0" max="23" required value="10">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Duración (Horas)</label>
+                        <input type="number" id="ev-duration" min="1" max="12" required value="2">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Tipo</label>
+                        <select id="ev-type">
+                            <option value="actividad">Actividad / Visita</option>
+                            <option value="transporte">Transporte / Traslado</option>
+                            <option value="show">Show / Concierto</option>
+                            <option value="sleep">Descanso</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ubicación / Dirección</label>
+                    <input type="text" id="ev-location" placeholder="Ej: Gion, Kioto">
+                </div>
+                <div class="form-group">
+                    <label>Costo Estimado (USD)</label>
+                    <input type="number" id="ev-cost" placeholder="Ej: 15">
+                </div>
+                <div class="form-group">
+                    <label>Detalles / Links / Recomendaciones</label>
+                    <textarea id="ev-details" rows="3" placeholder="Ingresa notas, tiempos de traslado estimados o URLs"></textarea>
+                </div>
+                <button type="submit" class="btn-add-event" style="width: 100%; justify-content: center;">Guardar Evento</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Memoria local de eventos
+        let localEvents = [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function buildGrid(events = []) {
+            const tbody = document.getElementById('grid-body');
+            tbody.innerHTML = '';
+
+            let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
+
+            for (let hour = 0; hour < 24; hour++) {
+                const tr = document.createElement('tr');
+                const hourFormatted = hour.toString().padStart(2, '0') + ':00';
+                
+                let rowHTML = `<td class="time-col">${hourFormatted}</td>`;
+
+                for (let day = 0; day < 7; day++) {
+                    if (occupiedCells[hour][day]) continue;
+
+                    const ev = events.find(e => e.day === day && e.startHour === hour);
+
+                    if (ev) {
+                        const duration = parseInt(ev.durationHours) || 1;
+                        for (let h = hour; h < hour + duration && h < 24; h++) {
+                            occupiedCells[h][day] = true;
+                        }
+
+                        rowHTML += `<td rowspan="${duration}">
+                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${ev.title}', '${ev.details || ''}', '${ev.location || ''}', '${ev.cost || ''}')">
+                                <div><b>${ev.title}</b></div>
+                                <div style="font-size:0.7rem; opacity:0.8;">${duration}h | ${ev.location || 'Sin ubicación'}</div>
+                            </div>
+                        </td>`;
+                    } else {
+                        rowHTML += `<td></td>`;
+                    }
+                }
+
+                tr.innerHTML = rowHTML;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function showModal(title, details, location, cost) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = `
+                <p><b>Ubicación:</b> ${location || 'No especificada'}</p>
+                <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
+                <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
+                <p><b>Notas & Detalles:</b></p>
+                <p>${details || 'Sin detalles adicionales.'}</p>
+            `;
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function saveEvent(e) {
+            e.preventDefault();
+
+            const newEv = {
+                title: document.getElementById('ev-title').value,
+                day: parseInt(document.getElementById('ev-day').value),
+                startHour: parseInt(document.getElementById('ev-hour').value),
+                durationHours: parseInt(document.getElementById('ev-duration').value),
+                type: document.getElementById('ev-type').value,
+                location: document.getElementById('ev-location').value,
+                cost: document.getElementById('ev-cost').value,
+                details: document.getElementById('ev-details').value
+            };
+
+            localEvents.push(newEv);
+            buildGrid(localEvents);
+            closeModal('addModal');
+            document.getElementById('addEventForm').reset();
+        }
+
+        // Carga Inicial
+        buildGrid(localEvents);
+    </script>
+</body>
+</html>
