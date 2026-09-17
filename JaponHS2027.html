@@ -447,7 +447,7 @@ function loadEventsFromSheet() {
             const rows = lines.slice(1); // Salta la fila 1 de encabezados
             
             rows.forEach(row => {
-                // Separar columnas respetando comillas
+                // Separar respetando comillas
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
                 if (cols.length >= 4 && cols[0]) {
