@@ -476,12 +476,12 @@
 
     // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
     // Consulta directa a Gemini API ajustada para claves AQ...
-    async function askGemini(promptText) {
+   async function askGemini(promptText) {
         const apiKey = getApiKey();
         if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
 
-        // URL actualizada para compatibilidad con la clave de tu proyecto
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Endpoint oficial y estable (v1) para gemini-1.5-flash
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
         try {
             const res = await fetch(url, {
