@@ -42,23 +42,27 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* Banner Alojamientos */
-        .accommodation-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .acc-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: space-between; }
-        .acc-info h4 { font-size: 0.9rem; color: var(--text-dark); }
-        .acc-info p { font-size: 0.8rem; color: var(--text-muted); }
-        .acc-link { color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 600; }
+        /* Controles de Semana */
+        .week-selector { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .week-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 0.375rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .week-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* Controles y Grilla 24hs */
         .schedule-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
         .btn-add-event { background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 0.375rem; cursor: pointer; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
         .btn-add-event:hover { background: var(--primary-hover); }
 
-        .schedule-grid-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-        .schedule-table { width: 100%; border-collapse: collapse; min-width: 900px; table-layout: fixed; }
-        .schedule-table th, .schedule-table td { border: 1px solid var(--border); padding: 0.4rem; text-align: center; font-size: 0.8rem; height: 40px; vertical-align: top; }
-        .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
-        .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; }
+        /* Tabla 24hs */
+        .schedule-grid-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; overflow-x: auto; max-height: 75vh; overflow-y: auto; }
+        .schedule-table { width: 100%; border-collapse: collapse; min-width: 1000px; table-layout: fixed; }
+        .schedule-table th, .schedule-table td { border: 1px solid var(--border); padding: 0.4rem; text-align: center; font-size: 0.8rem; vertical-align: top; }
+        
+        /* Encabezado con Estadía integrados */
+        .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; height: 75px; }
+        .day-header { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+        .day-date { font-weight: 700; color: var(--text-dark); font-size: 0.85rem; }
+        .day-stay { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 0.2rem; font-size: 0.7rem; color: #1e40af; font-weight: 600; margin-top: 0.2rem; }
+
+        .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; height: 40px; }
 
         .event-block { border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: left; height: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
         .event-block:hover { transform: scale(1.01); }
@@ -71,17 +75,12 @@
         .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; }
         .map-container iframe { width: 100%; height: 100%; border: 0; }
 
-        /* Recomendaciones & Shows */
+        /* Grid Recomendaciones */
         .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .recom-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
-        .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
-        .badge-anime { background: #fce7f3; color: #be185d; }
-        .badge-comida { background: #ffedd5; color: #c2410c; }
-        .badge-show { background: #e0e7ff; color: #4338ca; }
 
-        /* Modal Generico */
+        /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 200; }
-        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 0.5rem; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 0.5rem; width: 90%; max-width: 520px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .close-btn { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); }
         .form-group { margin-bottom: 1rem; }
@@ -94,7 +93,7 @@
     <header>
         <div class="header-content">
             <div class="logo">
-                <i class="fa-solid fa-torii-gate"></i> Japón Otoño 2027
+                <i class="fa-solid fa-torii-gate"></i> Japón Otoño 2026/2027
             </div>
             
             <nav class="nav-tabs">
@@ -113,7 +112,7 @@
             </nav>
 
             <div class="external-links">
-                <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vStQNNb6BfPixR9FmDBmKMyY2Gf97AuAdmCs_EpQVoxnr-MSVls9z5efmxAuboZn4CLgwrfG_rBWHQ9/pubhtml" target="_blank" class="ext-btn"><i class="fa-solid fa-table"></i> Google Sheet</a>
+                <a href="https://docs.google.com/spreadsheets/d/1vStQNNb6BfPixR9FmDBmKMyY2Gf97AuAdmCs_EpQVoxnr-MSVls9z5efmxAuboZn4CLgwrfG_rBWHQ9/edit" target="_blank" class="ext-btn"><i class="fa-solid fa-table"></i> Google Sheet (Editar)</a>
                 <a href="https://www.google.com/maps/d/edit?mid=1kXNuTtK9xNF0h1ViVjEfLD9scbzoLQU&usp=sharing" target="_blank" class="ext-btn"><i class="fa-solid fa-map"></i> Google My Maps</a>
             </div>
         </div>
@@ -122,14 +121,15 @@
     <main>
         <!-- PESTAÑA 1: ITINERARIO 24HS -->
         <section id="calendario" class="tab-content active">
-            <div class="accommodation-bar" id="acc-container">
-                <!-- Se poblará desde la pestaña Alojamientos -->
-            </div>
-
             <div class="schedule-controls">
                 <div>
                     <h3>Distribución Horaria (00:00 - 24:00)</h3>
-                    <p style="color: var(--text-muted); font-size: 0.85rem;">Selecciona un bloque para ver detalles o agrega nuevas actividades.</p>
+                    <div class="week-selector" style="margin-top:0.5rem;">
+                        <span style="font-size:0.85rem; font-weight:600;">Semana:</span>
+                        <button class="week-btn active" onclick="setWeek(1)">Semana 1 (21/09 - 27/09)</button>
+                        <button class="week-btn" onclick="setWeek(2)">Semana 2 (28/09 - 04/10)</button>
+                        <button class="week-btn" onclick="setWeek(3)">Semana 3 (05/10 - 11/10)</button>
+                    </div>
                 </div>
                 <button class="btn-add-event" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Añadir Evento</button>
             </div>
@@ -137,15 +137,8 @@
             <div class="schedule-grid-container">
                 <table class="schedule-table">
                     <thead>
-                        <tr>
-                            <th class="time-col">Hora</th>
-                            <th>Lun 1</th>
-                            <th>Mar 2</th>
-                            <th>Mié 3</th>
-                            <th>Jue 4</th>
-                            <th>Vie 5</th>
-                            <th>Sáb 6</th>
-                            <th>Dom 7</th>
+                        <tr id="table-header-days">
+                            <!-- Se genera dinámicamente con Fechas de Lunes a Domingo -->
                         </tr>
                     </thead>
                     <tbody id="grid-body">
@@ -157,9 +150,7 @@
         <!-- PESTAÑA 2: TRANSPORTE Y MAPA -->
         <section id="transporte" class="tab-content">
             <h3>Mapa de Rutas y Objetivos Confirmados</h3>
-            <p style="color: var(--text-muted); margin-top: 0.5rem;">
-                Visualiza los marcadores guardados en Google My Maps para coordinar traslados y tiempos.
-            </p>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">Visualiza los marcadores guardados en Google My Maps para coordinar traslados.</p>
             <div class="map-container">
                 <iframe src="https://www.google.com/maps/d/embed?mid=1kXNuTtK9xNF0h1ViVjEfLD9scbzoLQU"></iframe>
             </div>
@@ -168,17 +159,13 @@
         <!-- PESTAÑA 3: RECOMENDACIONES -->
         <section id="reels" class="tab-content">
             <h3>Recomendaciones & Spots de Instagram/TikTok</h3>
-            <div class="recom-grid" id="recom-container">
-                <!-- Se poblará dinámicamente -->
-            </div>
+            <div class="recom-grid" id="recom-container"></div>
         </section>
 
         <!-- PESTAÑA 4: SHOWS -->
         <section id="shows" class="tab-content">
             <h3>Cartelera de Shows & Conciertos</h3>
-            <div class="recom-grid" id="shows-container">
-                <!-- Se poblará dinámicamente -->
-            </div>
+            <div class="recom-grid" id="shows-container"></div>
         </section>
     </main>
 
@@ -189,12 +176,11 @@
                 <h3 id="modalTitle">Detalles</h3>
                 <button class="close-btn" onclick="closeModal('eventModal')">&times;</button>
             </div>
-            <div id="modalBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-muted);">
-            </div>
+            <div id="modalBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-muted);"></div>
         </div>
     </div>
 
-    <!-- Modal Formulario Agregar Evento -->
+    <!-- Modal Agregar Evento -->
     <div class="modal" id="addModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -204,34 +190,28 @@
             <form id="addEventForm" onsubmit="saveEvent(event)">
                 <div class="form-group">
                     <label>Título de la actividad / lugar</label>
-                    <input type="text" id="ev-title" required placeholder="Ej: Visita al Parque de Nara">
+                    <input type="text" id="ev-title" required placeholder="Ej: Tren Bala Tokio ➔ Kioto">
                 </div>
+                
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
-                        <label>Día (0=Lun, 6=Dom)</label>
-                        <select id="ev-day">
-                            <option value="0">Lunes 1</option>
-                            <option value="1">Martes 2</option>
-                            <option value="2">Miércoles 3</option>
-                            <option value="3">Jueves 4</option>
-                            <option value="4">Viernes 5</option>
-                            <option value="5">Sábado 6</option>
-                            <option value="6">Domingo 7</option>
-                        </select>
+                        <label>Fecha del Evento</label>
+                        <input type="date" id="ev-date" required value="2026-09-26">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Hora Inicio (0-23)</label>
-                        <input type="number" id="ev-hour" min="0" max="23" required value="10">
+                        <input type="number" id="ev-hour" min="0" max="23" required value="8">
                     </div>
                 </div>
+
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
                         <label>Duración (Horas)</label>
-                        <input type="number" id="ev-duration" min="1" max="12" required value="2">
+                        <input type="number" id="ev-duration" min="1" max="12" required value="3">
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label>Tipo</label>
-                        <select id="ev-type">
+                        <label>Tipo de Evento</label>
+                        <select id="ev-type" onchange="toggleLocationFields()">
                             <option value="actividad">Actividad / Visita</option>
                             <option value="transporte">Transporte / Traslado</option>
                             <option value="show">Show / Concierto</option>
@@ -239,17 +219,31 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
+
+                <!-- Campos de Ubicación Dinámicos -->
+                <div class="form-group" id="single-location-group">
                     <label>Ubicación / Dirección</label>
                     <input type="text" id="ev-location" placeholder="Ej: Gion, Kioto">
                 </div>
+
+                <div style="display: none; gap: 0.5rem;" id="transport-location-group">
+                    <div class="form-group" style="flex:1;">
+                        <label>Origen</label>
+                        <input type="text" id="ev-origin" placeholder="Ej: Estación Tokio">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Destino</label>
+                        <input type="text" id="ev-destination" placeholder="Ej: Fujitaya Kyoto">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Costo Estimado (USD)</label>
-                    <input type="number" id="ev-cost" placeholder="Ej: 15">
+                    <input type="number" id="ev-cost" placeholder="Ej: 100">
                 </div>
                 <div class="form-group">
-                    <label>Detalles / Links / Recomendaciones</label>
-                    <textarea id="ev-details" rows="3" placeholder="Ingresa notas, tiempos de traslado estimados o URLs"></textarea>
+                    <label>Detalles / Links / Notas</label>
+                    <textarea id="ev-details" rows="3" placeholder="Ej: Salida 08:24hs - Llegada 10:39hs. Asiento lado derecho para ver el Monte Fuji."></textarea>
                 </div>
                 <button type="submit" class="btn-add-event" style="width: 100%; justify-content: center;">Guardar Evento</button>
             </form>
@@ -257,21 +251,78 @@
     </div>
 
     <script>
-        // Memoria local de eventos
+        // Configuración de Fechas: Inicio en Lunes 21 de Septiembre de 2026
+        const START_DATE = new Date(2026, 8, 21);
+        let currentWeek = 1;
         let localEvents = [];
+
+        // Alojamientos
+        const accommodations = [
+            { start: '2026-09-21', end: '2026-09-25', name: 'Hotel Graphy Shibuya', city: 'Tokio', link: '#' },
+            { start: '2026-09-26', end: '2026-10-06', name: 'Fujitaya Kyoto', city: 'Kioto', link: 'https://www.booking.com/hotel/jp/fujitaya-kyoto.es-ar.html' }
+        ];
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
             document.getElementById(tabId).classList.add('active');
             event.currentTarget.classList.add('active');
+        }
+
+        function setWeek(weekNum) {
+            currentWeek = weekNum;
+            document.querySelectorAll('.week-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === weekNum - 1);
+            });
+            renderHeaderDays();
+            buildGrid(localEvents);
+        }
+
+        function getDatesForCurrentWeek() {
+            let dates = [];
+            let startOffset = (currentWeek - 1) * 7;
+            for (let i = 0; i < 7; i++) {
+                let d = new Date(START_DATE);
+                d.setDate(d.getDate() + startOffset + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+
+        function renderHeaderDays() {
+            const headerRow = document.getElementById('table-header-days');
+            const dates = getDatesForCurrentWeek();
+            // Array con estructura estricta de Lunes a Domingo
+            const dayNamesLunesADomingo = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+            let html = `<th class="time-col">Hora</th>`;
+
+            dates.forEach(d => {
+                let dateStr = d.toISOString().split('T')[0];
+                // Convertir el día de JS (0=Dom, 1=Lun...) a índice de Lunes a Domingo (0=Lun ... 6=Dom)
+                let dayIdx = (d.getDay() + 6) % 7;
+                let formattedDate = `${dayNamesLunesADomingo[dayIdx]} ${d.getDate()}/${d.getMonth()+1}`;
+                
+                // Buscar alojamiento activo
+                let acc = accommodations.find(a => dateStr >= a.start && dateStr <= a.end);
+                let stayHTML = acc ? `<div class="day-stay">🏨 <a href="${acc.link}" target="_blank" style="color:inherit;text-decoration:underline;">${acc.name}</a></div>` : `<div class="day-stay">Sin asignar</div>`;
+
+                html += `<th>
+                    <div class="day-header">
+                        <div class="day-date">${formattedDate}</div>
+                        ${stayHTML}
+                    </div>
+                </th>`;
+            });
+
+            headerRow.innerHTML = html;
         }
 
         function buildGrid(events = []) {
             const tbody = document.getElementById('grid-body');
             tbody.innerHTML = '';
 
+            const dates = getDatesForCurrentWeek();
             let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
 
             for (let hour = 0; hour < 24; hour++) {
@@ -280,21 +331,24 @@
                 
                 let rowHTML = `<td class="time-col">${hourFormatted}</td>`;
 
-                for (let day = 0; day < 7; day++) {
-                    if (occupiedCells[hour][day]) continue;
+                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                    if (occupiedCells[hour][dayIdx]) continue;
 
-                    const ev = events.find(e => e.day === day && e.startHour === hour);
+                    let dayDateStr = dates[dayIdx].toISOString().split('T')[0];
+                    const ev = events.find(e => e.date === dayDateStr && e.startHour === hour);
 
                     if (ev) {
                         const duration = parseInt(ev.durationHours) || 1;
                         for (let h = hour; h < hour + duration && h < 24; h++) {
-                            occupiedCells[h][day] = true;
+                            occupiedCells[h][dayIdx] = true;
                         }
 
+                        let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
+
                         rowHTML += `<td rowspan="${duration}">
-                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${ev.title}', '${ev.details || ''}', '${ev.location || ''}', '${ev.cost || ''}')">
+                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${ev.title}', '${ev.details || ''}', '${locText}', '${ev.cost || ''}')">
                                 <div><b>${ev.title}</b></div>
-                                <div style="font-size:0.7rem; opacity:0.8;">${duration}h | ${ev.location || 'Sin ubicación'}</div>
+                                <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
                             </div>
                         </td>`;
                     } else {
@@ -307,10 +361,24 @@
             }
         }
 
+        function toggleLocationFields() {
+            const type = document.getElementById('ev-type').value;
+            const singleGrp = document.getElementById('single-location-group');
+            const transGrp = document.getElementById('transport-location-group');
+
+            if (type === 'transporte') {
+                singleGrp.style.display = 'none';
+                transGrp.style.display = 'flex';
+            } else {
+                singleGrp.style.display = 'block';
+                transGrp.style.display = 'none';
+            }
+        }
+
         function showModal(title, details, location, cost) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalBody').innerHTML = `
-                <p><b>Ubicación:</b> ${location || 'No especificada'}</p>
+                <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
                 <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
                 <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
                 <p><b>Notas & Detalles:</b></p>
@@ -330,13 +398,17 @@
         function saveEvent(e) {
             e.preventDefault();
 
+            const type = document.getElementById('ev-type').value;
+
             const newEv = {
                 title: document.getElementById('ev-title').value,
-                day: parseInt(document.getElementById('ev-day').value),
+                date: document.getElementById('ev-date').value,
                 startHour: parseInt(document.getElementById('ev-hour').value),
                 durationHours: parseInt(document.getElementById('ev-duration').value),
-                type: document.getElementById('ev-type').value,
+                type: type,
                 location: document.getElementById('ev-location').value,
+                origin: document.getElementById('ev-origin').value,
+                destination: document.getElementById('ev-destination').value,
                 cost: document.getElementById('ev-cost').value,
                 details: document.getElementById('ev-details').value
             };
@@ -345,9 +417,11 @@
             buildGrid(localEvents);
             closeModal('addModal');
             document.getElementById('addEventForm').reset();
+            toggleLocationFields();
         }
 
         // Carga Inicial
+        renderHeaderDays();
         buildGrid(localEvents);
     </script>
 </body>
