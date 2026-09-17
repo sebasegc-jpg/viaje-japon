@@ -250,315 +250,380 @@
         </div>
     </div>
 
-    <script>
-        const START_DATE = new Date(2026, 8, 21);
-        let currentWeek = 1;
-        let localEvents = [];
-        let accommodationsData = [];
+   <script>
+    let START_DATE = null;
+    let currentWeek = 1;
+    let localEvents = [];
+    let accommodationsData = [];
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
-        function setWeek(weekNum) {
-            currentWeek = weekNum;
-            document.querySelectorAll('.week-btn').forEach((btn, idx) => {
-                btn.classList.toggle('active', idx === weekNum - 1);
-            });
-            renderHeaderDays();
-            buildGrid(localEvents);
-        }
-
-        function getDatesForCurrentWeek() {
-            let dates = [];
-            let startOffset = (currentWeek - 1) * 7;
-            for (let i = 0; i < 7; i++) {
-                let d = new Date(START_DATE);
-                d.setDate(d.getDate() + startOffset + i);
-                dates.push(d);
-            }
-            return dates;
-        }
-
-        // Carga dinámicamente la pestaña Alojamientos desde Google Sheets (gid=1461163351)
-      async function loadAccommodationsFromSheet() {
-    const accCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=1461163351&single=true&output=csv';
-    try {
-        const response = await fetch(accCsvUrl);
-        const data = await response.text();
-        const rows = data.split(/\r?\n/).map(r => r.split(','));
-        
-        accommodationsData = rows.slice(1).map(r => {
-            if (r.length < 4) return null;
-            const name = (r[0] || '').replace(/^"|"$/g, '').trim();
-            const checkInRaw = (r[2] || '').replace(/^"|"$/g, '').trim();
-            const checkOutRaw = (r[3] || '').replace(/^"|"$/g, '').trim();
-            const mapUrl = (r[5] || '').replace(/^"|"$/g, '').trim();
-
-            const startDate = checkInRaw.split(' ')[0];
-            const endDate = checkOutRaw.split(' ')[0];
-
-            return { name, start: startDate, end: endDate, mapUrl };
-        }).filter(a => a && a.name);
-
-        renderHeaderDays();
-    } catch (e) {
-        console.error("Error al cargar alojamientos:", e);
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
     }
-}
 
-        function renderHeaderDays() {
-            const headerRow = document.getElementById('table-header-days');
-            const dates = getDatesForCurrentWeek();
-            const dayNamesLunesADomingo = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-            let html = `<th class="time-col">Hora</th>`;
-
-            dates.forEach(d => {
-                let dateStr = d.toISOString().split('T')[0];
-                let dayIdx = (d.getDay() + 6) % 7;
-                let formattedDate = `${dayNamesLunesADomingo[dayIdx]} ${d.getDate()}/${d.getMonth()+1}`;
-                
-                // Buscar alojamiento dinámico
-                let acc = accommodationsData.find(a => dateStr >= a.start && dateStr <= a.end);
-                
-                let stayHTML = '<div class="day-stay">Sin asignar</div>';
-                if (acc) {
-                    const safeName = acc.name.replace(/'/g, "\\'");
-                    const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
-                    stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '')">🏨 ${acc.name}</div>`;
-                }
-
-                html += `<th>
-                    <div class="day-header">
-                        <div class="day-date">${formattedDate}</div>
-                        ${stayHTML}
-                    </div>
-                </th>`;
-            });
-
-            headerRow.innerHTML = html;
-        }
-
-        function buildGrid(events = []) {
-            const tbody = document.getElementById('grid-body');
-            tbody.innerHTML = '';
-
-            const dates = getDatesForCurrentWeek();
-            let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
-
-            for (let hour = 0; hour < 24; hour++) {
-                const tr = document.createElement('tr');
-                const hourFormatted = hour.toString().padStart(2, '0') + ':00';
-                let rowHTML = `<td class="time-col">${hourFormatted}</td>`;
-
-                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
-                    if (occupiedCells[hour][dayIdx]) continue;
-
-                    let dayDateStr = dates[dayIdx].toISOString().split('T')[0];
-                    const ev = events.find(e => e.date === dayDateStr && e.startHour === hour);
-
-                    if (ev) {
-                        const duration = parseInt(ev.durationHours) || 1;
-                        for (let h = hour; h < hour + duration && h < 24; h++) {
-                            occupiedCells[h][dayIdx] = true;
-                        }
-
-                        let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
-                        if (ev.type === 'transporte' && (!ev.origin && !ev.destination)) {
-                            locText = ev.location || '';
-                        }
-
-                        let safeTitle = ev.title.replace(/'/g, "\\'");
-                        let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
-                        let safeLoc = (locText || '').replace(/'/g, "\\'");
-                        let safeCost = (ev.cost || '').replace(/'/g, "\\'");
-
-                        rowHTML += `<td rowspan="${duration}">
-                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
-                                <div><b>${ev.title}</b></div>
-                                <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
-                            </div>
-                        </td>`;
-                    } else {
-                        rowHTML += `<td></td>`;
-                    }
-                }
-
-                tr.innerHTML = rowHTML;
-                tbody.appendChild(tr);
-            }
-        }
-
-        function toggleLocationFields() {
-            const type = document.getElementById('ev-type').value;
-            const singleGrp = document.getElementById('single-location-group');
-            const transGrp = document.getElementById('transport-location-group');
-
-            if (type === 'transporte') {
-                singleGrp.style.display = 'none';
-                transGrp.style.display = 'flex';
-            } else {
-                singleGrp.style.display = 'block';
-                transGrp.style.display = 'none';
-            }
-        }
-
-        function showModal(title, details, location, cost) {
-            document.getElementById('modalTitle').innerText = title;
-            
-            let mapUrl = '#';
-            let isShortLink = false;
-            let isRoute = false;
-
-            if (location && location.trim() !== '') {
-                // Elimina comillas sobrantes que vienen del CSV
-                const cleanLoc = location.replace(/^"|"$/g, '').trim();
-
-                if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
-                    isShortLink = true;
-                    mapUrl = cleanLoc;
-                } else {
-                    const normalized = cleanLoc.replace(/&rarr;/g, '->')
-                                                .replace(/➔/g, '->')
-                                                .replace(/→/g, '->')
-                                                .replace(/=>/g, '->');
-
-                    if (normalized.includes('->')) {
-                        isRoute = true;
-                        const parts = normalized.split('->');
-                        const originStr = parts[0].replace(/^"|"$/g, '').trim();
-                        const destStr = parts[1].replace(/^"|"$/g, '').trim();
-
-                        const origin = encodeURIComponent(originStr + ", Japan");
-                        const destination = encodeURIComponent(destStr + ", Japan");
-
-                        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
-                    } else {
-                        const destination = encodeURIComponent(cleanLoc + ", Japan");
-                        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
-                    }
-                }
-            }
-
-            document.getElementById('modalBody').innerHTML = `
-                <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
-                <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
-                
-                ${location ? `
-                    <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
-                        <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
-                        <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
-                            📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
-                        </a></p>
-                    </div>
-                ` : ''}
-
-                <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
-                <p><b>Notas & Detalles:</b></p>
-                <p>${details || 'Sin detalles adicionales.'}</p>
-            `;
-            
-            document.getElementById('eventModal').style.display = 'flex';
-        }
-
-        function openAddModal() {
-            document.getElementById('addModal').style.display = 'flex';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function saveEvent(e) {
-            e.preventDefault();
-
-            const type = document.getElementById('ev-type').value;
-
-            const newEv = {
-                title: document.getElementById('ev-title').value,
-                date: document.getElementById('ev-date').value,
-                startHour: parseInt(document.getElementById('ev-hour').value),
-                durationHours: parseInt(document.getElementById('ev-duration').value),
-                type: type,
-                location: document.getElementById('ev-location').value,
-                origin: document.getElementById('ev-origin').value,
-                destination: document.getElementById('ev-destination').value,
-                cost: document.getElementById('ev-cost').value,
-                details: document.getElementById('ev-details').value
-            };
-
-            localEvents.push(newEv);
-            buildGrid(localEvents);
-
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw42uc-z--DVqLAYsNZDLKagdz6jFAlxuTiz3aAzluBkyDRDJqi62szpjUwNHL3gRQtew/exec";
-
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify(newEv)
-            })
-            .then(res => console.log("Evento guardado con éxito en Google Sheet"))
-            .catch(err => console.error("Error al guardar:", err));
-
-            closeModal('addModal');
-            document.getElementById('addEventForm').reset();
-            toggleLocationFields();
-        }
-
-async function loadEventsFromSheet() {
-    const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=0&single=true&output=csv';
-    try {
-        const response = await fetch(sheetCsvUrl);
-        const data = await response.text();
-        
-        const rows = data.split(/\r?\n/).map(row => {
-            const result = [];
-            let insideQuote = false;
-            let entry = '';
-            for (let char of row) {
-                if (char === '"' && !insideQuote) insideQuote = true;
-                else if (char === '"' && insideQuote) insideQuote = false;
-                else if (char === ',' && !insideQuote) {
-                    result.push(entry.trim());
-                    entry = '';
-                } else entry += char;
-            }
-            result.push(entry.trim());
-            return result;
+    function setWeek(weekNum) {
+        currentWeek = weekNum;
+        document.querySelectorAll('.week-btn').forEach((btn, idx) => {
+            btn.classList.toggle('active', idx === weekNum - 1);
         });
-
-        const events = rows.slice(1).map(row => {
-            if (row.length < 2) return null;
-            
-            const title = (row[0] || '').replace(/^"|"$/g, '').trim();
-            const date = (row[1] || '').replace(/^"|"$/g, '').trim();
-            const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
-            const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
-            const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
-            
-            let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
-            let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
-
-            const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
-            const details = (row[7] || '').replace(/^"|"$/g, '').trim();
-
-            return { title, date, startHour, durationHours, type, location, cost, details };
-        }).filter(e => e !== null && e.title !== '');
-
-        localEvents = events;
-        buildGrid(events);
-    } catch (error) {
-        console.error('Error al cargar la planilla:', error);
-    }
-}
-        // Carga Inicial
         renderHeaderDays();
         buildGrid(localEvents);
-        loadAccommodationsFromSheet();
-        loadEventsFromSheet();
-    </script>
+    }
+
+    function parseDateStr(rawDate) {
+        if (!rawDate) return null;
+        let clean = rawDate.split(' ')[0].replace(/^"|"$/g, '').trim();
+        if (clean.includes('/')) {
+            let parts = clean.split('/');
+            if (parts.length === 3) {
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                return new Date(year, month, day);
+            }
+        } else if (clean.includes('-')) {
+            let parts = clean.split('-');
+            if (parts.length === 3) {
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+        }
+        return null;
+    }
+
+    function formatDateToISO(d) {
+        if (!d) return '';
+        let year = d.getFullYear();
+        let month = (d.getMonth() + 1).toString().padStart(2, '0');
+        let day = d.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Encuentra la fecha de inicio del viaje (Lunes de la primera semana cargada)
+    function autoDetectStartDate() {
+        let allDates = [];
+        
+        localEvents.forEach(e => {
+            let d = parseDateStr(e.date);
+            if (d) allDates.push(d);
+        });
+
+        accommodationsData.forEach(a => {
+            let d = parseDateStr(a.start);
+            if (d) allDates.push(d);
+        });
+
+        if (allDates.length > 0) {
+            allDates.sort((a, b) => a - b);
+            let earliest = new Date(allDates[0]);
+            // Ajustar al lunes de esa semana
+            let dayIdx = (earliest.getDay() + 6) % 7;
+            earliest.setDate(earliest.getDate() - dayIdx);
+            START_DATE = earliest;
+        } else {
+            // Si no hay datos cargados aún, toma la semana actual por defecto
+            let today = new Date();
+            let dayIdx = (today.getDay() + 6) % 7;
+            today.setDate(today.getDate() - dayIdx);
+            START_DATE = today;
+        }
+    }
+
+    function getDatesForCurrentWeek() {
+        if (!START_DATE) autoDetectStartDate();
+        let dates = [];
+        let startOffset = (currentWeek - 1) * 7;
+        for (let i = 0; i < 7; i++) {
+            let d = new Date(START_DATE);
+            d.setDate(d.getDate() + startOffset + i);
+            dates.push(d);
+        }
+        return dates;
+    }
+
+    async function loadAccommodationsFromSheet() {
+        const accCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=1461163351&single=true&output=csv';
+        try {
+            const response = await fetch(accCsvUrl);
+            const data = await response.text();
+            const rows = data.split(/\r?\n/).map(r => r.split(','));
+            
+            accommodationsData = rows.slice(1).map(r => {
+                if (r.length < 4) return null;
+                const name = (r[0] || '').replace(/^"|"$/g, '').trim();
+                const start = (r[2] || '').replace(/^"|"$/g, '').trim();
+                const end = (r[3] || '').replace(/^"|"$/g, '').trim();
+                const mapUrl = (r[5] || '').replace(/^"|"$/g, '').trim();
+
+                return { name, start, end, mapUrl };
+            }).filter(a => a && a.name);
+
+        } catch (e) {
+            console.error("Error al cargar alojamientos:", e);
+        }
+    }
+
+    async function loadEventsFromSheet() {
+        const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=0&single=true&output=csv';
+        try {
+            const response = await fetch(sheetCsvUrl);
+            const data = await response.text();
+            
+            const rows = data.split(/\r?\n/).map(row => {
+                const result = [];
+                let insideQuote = false;
+                let entry = '';
+                for (let char of row) {
+                    if (char === '"' && !insideQuote) insideQuote = true;
+                    else if (char === '"' && insideQuote) insideQuote = false;
+                    else if (char === ',' && !insideQuote) {
+                        result.push(entry.trim());
+                        entry = '';
+                    } else entry += char;
+                }
+                result.push(entry.trim());
+                return result;
+            });
+
+            const events = rows.slice(1).map(row => {
+                if (row.length < 2) return null;
+                
+                const title = (row[0] || '').replace(/^"|"$/g, '').trim();
+                const date = (row[1] || '').replace(/^"|"$/g, '').trim();
+                const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
+                const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
+                const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
+                
+                let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
+                let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
+
+                const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
+                const details = (row[7] || '').replace(/^"|"$/g, '').trim();
+
+                return { title, date, startHour, durationHours, type, location, cost, details };
+            }).filter(e => e !== null && e.title !== '');
+
+            localEvents = events;
+        } catch (error) {
+            console.error('Error al cargar la planilla:', error);
+        }
+    }
+
+    function renderHeaderDays() {
+        const headerRow = document.getElementById('table-header-days');
+        const dates = getDatesForCurrentWeek();
+        const dayNamesLunesADomingo = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+        let html = `<th class="time-col">Hora</th>`;
+
+        dates.forEach(d => {
+            let dateISO = formatDateToISO(d);
+            let dayIdx = (d.getDay() + 6) % 7;
+            let formattedDate = `${dayNamesLunesADomingo[dayIdx]} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+            
+            let acc = accommodationsData.find(a => {
+                let startObj = parseDateStr(a.start);
+                let endObj = parseDateStr(a.end);
+                return startObj && endObj && d >= startObj && d <= endObj;
+            });
+            
+            let stayHTML = '<div class="day-stay">Sin asignar</div>';
+            if (acc) {
+                const safeName = acc.name.replace(/'/g, "\\'");
+                const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
+                stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '')">🏨 ${acc.name}</div>`;
+            }
+
+            html += `<th>
+                <div class="day-header">
+                    <div class="day-date">${formattedDate}</div>
+                    ${stayHTML}
+                </div>
+            </th>`;
+        });
+
+        headerRow.innerHTML = html;
+    }
+
+    function buildGrid(events = []) {
+        const tbody = document.getElementById('grid-body');
+        tbody.innerHTML = '';
+
+        const dates = getDatesForCurrentWeek();
+        let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
+
+        for (let hour = 0; hour < 24; hour++) {
+            const tr = document.createElement('tr');
+            const hourFormatted = hour.toString().padStart(2, '0') + ':00';
+            let rowHTML = `<td class="time-col">${hourFormatted}</td>`;
+
+            for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                if (occupiedCells[hour][dayIdx]) continue;
+
+                let currentDateISO = formatDateToISO(dates[dayIdx]);
+                const ev = events.find(e => {
+                    let evDateObj = parseDateStr(e.date);
+                    return evDateObj && formatDateToISO(evDateObj) === currentDateISO && e.startHour === hour;
+                });
+
+                if (ev) {
+                    const duration = parseInt(ev.durationHours) || 1;
+                    for (let h = hour; h < hour + duration && h < 24; h++) {
+                        occupiedCells[h][dayIdx] = true;
+                    }
+
+                    let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
+                    if (ev.type === 'transporte' && (!ev.origin && !ev.destination)) {
+                        locText = ev.location || '';
+                    }
+
+                    let safeTitle = ev.title.replace(/'/g, "\\'");
+                    let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
+                    let safeLoc = (locText || '').replace(/'/g, "\\'");
+                    let safeCost = (ev.cost || '').replace(/'/g, "\\'");
+
+                    rowHTML += `<td rowspan="${duration}">
+                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
+                            <div><b>${ev.title}</b></div>
+                            <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
+                        </div>
+                    </td>`;
+                } else {
+                    rowHTML += `<td></td>`;
+                }
+            }
+
+            tr.innerHTML = rowHTML;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function toggleLocationFields() {
+        const type = document.getElementById('ev-type').value;
+        const singleGrp = document.getElementById('single-location-group');
+        const transGrp = document.getElementById('transport-location-group');
+
+        if (type === 'transporte') {
+            singleGrp.style.display = 'none';
+            transGrp.style.display = 'flex';
+        } else {
+            singleGrp.style.display = 'block';
+            transGrp.style.display = 'none';
+        }
+    }
+
+    function showModal(title, details, location, cost) {
+        document.getElementById('modalTitle').innerText = title;
+        
+        let mapUrl = '#';
+        let isShortLink = false;
+        let isRoute = false;
+
+        if (location && location.trim() !== '') {
+            const cleanLoc = location.replace(/^"|"$/g, '').trim();
+
+            if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
+                isShortLink = true;
+                mapUrl = cleanLoc;
+            } else {
+                const normalized = cleanLoc.replace(/&rarr;/g, '->')
+                                            .replace(/➔/g, '->')
+                                            .replace(/→/g, '->')
+                                            .replace(/=>/g, '->');
+
+                if (normalized.includes('->')) {
+                    isRoute = true;
+                    const parts = normalized.split('->');
+                    const originStr = parts[0].replace(/^"|"$/g, '').trim();
+                    const destStr = parts[1].replace(/^"|"$/g, '').trim();
+
+                    const origin = encodeURIComponent(originStr + ", Japan");
+                    const destination = encodeURIComponent(destStr + ", Japan");
+
+                    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+                } else {
+                    const destination = encodeURIComponent(cleanLoc + ", Japan");
+                    mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+                }
+            }
+        }
+
+        document.getElementById('modalBody').innerHTML = `
+            <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
+            <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
+            
+            ${location ? `
+                <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
+                    <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
+                    <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
+                        📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
+                    </a></p>
+                </div>
+            ` : ''}
+
+            <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
+            <p><b>Notas & Detalles:</b></p>
+            <p>${details || 'Sin detalles adicionales.'}</p>
+        `;
+        
+        document.getElementById('eventModal').style.display = 'flex';
+    }
+
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function saveEvent(e) {
+        e.preventDefault();
+
+        const type = document.getElementById('ev-type').value;
+
+        const newEv = {
+            title: document.getElementById('ev-title').value,
+            date: document.getElementById('ev-date').value,
+            startHour: parseInt(document.getElementById('ev-hour').value),
+            durationHours: parseInt(document.getElementById('ev-duration').value),
+            type: type,
+            location: document.getElementById('ev-location').value,
+            origin: document.getElementById('ev-origin').value,
+            destination: document.getElementById('ev-destination').value,
+            cost: document.getElementById('ev-cost').value,
+            details: document.getElementById('ev-details').value
+        };
+
+        localEvents.push(newEv);
+        autoDetectStartDate();
+        renderHeaderDays();
+        buildGrid(localEvents);
+
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw42uc-z--DVqLAYsNZDLKagdz6jFAlxuTiz3aAzluBkyDRDJqi62szpjUwNHL3gRQtew/exec";
+
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(newEv)
+        })
+        .then(res => console.log("Evento guardado con éxito en Google Sheet"))
+        .catch(err => console.error("Error al guardar:", err));
+
+        closeModal('addModal');
+        document.getElementById('addEventForm').reset();
+        toggleLocationFields();
+    }
+
+    async function initApp() {
+        await loadAccommodationsFromSheet();
+        await loadEventsFromSheet();
+        autoDetectStartDate();
+        renderHeaderDays();
+        buildGrid(localEvents);
+    }
+
+    initApp();
+</script>
 </body>
 </html>
