@@ -390,35 +390,47 @@ function showModal(title, details, location, cost) {
     if (location && location.trim() !== '') {
         const cleanLoc = location.trim();
 
-        // 1. Si es un link corto de Google Maps (maps.app.goo.gl o goo.gl)
+        // 1. Si es un enlace corto de Google Maps (maps.app.goo.gl o goo.gl)
         if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
             isShortLink = true;
             mapUrl = cleanLoc;
         } 
-        // 2. Si es un trayecto entre dos puntos (A ➔ B)
-        else if (cleanLoc.includes('➔') || cleanLoc.includes('->')) {
-            isRoute = true;
-            const parts = cleanLoc.replace(/->/g, '➔').split('➔');
-            const origin = encodeURIComponent(parts[0].trim() + ", Japan");
-            const destination = encodeURIComponent(parts[1].trim() + ", Japan");
-            mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
-        } 
-        // 3. Si es un nombre o dirección en texto
         else {
-            const destination = encodeURIComponent(cleanLoc + ", Japan");
-            mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+            // Normalizar cualquier tipo de flecha o guion que venga desde la planilla
+            const normalized = cleanLoc.replace(/&rarr;/g, '->')
+                                        .replace(/➔/g, '->')
+                                        .replace(/→/g, '->')
+                                        .replace(/=>/g, '->');
+
+            // 2. Si es un trayecto entre dos puntos (A ➔ B)
+            if (normalized.includes('->')) {
+                isRoute = true;
+                const parts = normalized.split('->');
+                const originStr = parts[0].replace(/^"|"$/g, '').trim();
+                const destStr = parts[1].replace(/^"|"$/g, '').trim();
+
+                const origin = encodeURIComponent(originStr + ", Japan");
+                const destination = encodeURIComponent(destStr + ", Japan");
+
+                mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+            } 
+            // 3. Si es un nombre de lugar o dirección fija
+            else {
+                const destination = encodeURIComponent(cleanLoc + ", Japan");
+                mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+            }
         }
     }
 
     document.getElementById('modalBody').innerHTML = `
-        <p><b>Ubicación / Trayecto:</b> ${isShortLink ? 'Ver punto exacto en el mapa' : (location || 'No especificada')}</p>
+        <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
         <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
         
         ${location ? `
             <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
                 <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
-                <p><a href="${mapUrl}" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
-                    📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo (Origen ➔ Destino)' : 'Ver cómo llegar')}
+                <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
+                    📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
                 </a></p>
             </div>
         ` : ''}
