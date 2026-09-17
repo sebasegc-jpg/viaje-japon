@@ -442,11 +442,15 @@ function loadEventsFromSheet() {
     fetch(CSV_URL)
         .then(response => response.text())
         .then(data => {
-            localEvents = []; // Limpia duplicados locales
-            const rows = data.split('\n').slice(1);
+            localEvents = [];
+            const lines = data.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const rows = lines.slice(1); // Salta la fila 1 de encabezados
+            
             rows.forEach(row => {
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Limpia separadores de comas
-                if (cols.length >= 4 && cols[0].trim() !== "") {
+                // Separar columnas respetando comillas
+                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                
+                if (cols.length >= 4 && cols[0]) {
                     localEvents.push({
                         title: cols[0].replace(/^"|"$/g, '').trim(),
                         date: cols[1].replace(/^"|"$/g, '').trim(),
@@ -461,9 +465,8 @@ function loadEventsFromSheet() {
             });
             buildGrid(localEvents);
         })
-        .catch(err => console.log("Error al cargar desde el Sheet:", err));
+        .catch(err => console.error("Error leyendo CSV:", err));
 }
-
 // Carga Inicial
 renderHeaderDays();
 buildGrid(localEvents);
