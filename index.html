@@ -487,35 +487,64 @@ function showModal(title, details, location, cost) {
     toggleLocationFields();
 }
         // Cargar eventos guardados de Google Sheets al iniciar
-function loadEventsFromSheet() {
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStQNNb6BfPixR9FmDBmKMyY2Gf97AuAdmCs_EpQVoxnr-MSVls9z5efmxAuboZn4CLgwrfG_rBWHQ9/pub?gid=0&single=true&output=csv";
+async function loadEventsFromSheet() {
+    const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS1.../pub?gid=0&single=true&output=csv'; // Mantiene tu URL actual
+    try {
+        const response = await fetch(sheetCsvUrl);
+        const data = await response.text();
+        
+        // Split inteligente respetando comillas y saltos de línea
+        const rows = data.split(/\r?\n/).map(row => {
+            const result = [];
+            let insideQuote = false;
+            let entry = '';
+            for (let char of row) {
+                if (char === '"' && !insideQuote) insideQuote = true;
+                else if (char === '"' && insideQuote) insideQuote = false;
+                else if (char === ',' && !insideQuote) {
+                    result.push(entry.trim());
+                    entry = '';
+                } else entry += char;
+            }
+            result.push(entry.trim());
+            return result;
+        });
 
-    fetch(CSV_URL)
-        .then(response => response.text())
-        .then(data => {
-            localEvents = [];
-            const lines = data.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            const rows = lines.slice(1); // Omitir la Fila 1 de encabezados
+        // Omitir encabezado (fila 0)
+        const events = rows.slice(1).map(row => {
+            if (row.length < 2) return null;
             
-            rows.forEach(row => {
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                
-                if (cols.length >= 4 && cols[0]) {
-                    localEvents.push({
-                        title: cols[0].replace(/^"|"$/g, '').trim(),
-                        date: cols[1].replace(/^"|"$/g, '').trim(),
-                        startHour: parseInt(cols[2]),
-                        durationHours: parseInt(cols[3]),
-                        type: cols[4] ? cols[4].replace(/^"|"$/g, '').trim() : 'actividad',
-                        location: cols[5] ? cols[5].replace(/^"|"$/g, '').trim() : '',
-                        cost: cols[6] ? cols[6].replace(/^"|"$/g, '').trim() : '',
-                        details: cols[7] ? cols[7].replace(/^"|"$/g, '').trim() : ''
-                    });
-                }
-            });
-            buildGrid(localEvents);
-        })
-        .catch(err => console.error("Error leyendo CSV:", err));
+            // Mapeo exacto según tus columnas (A a H)
+            const title = row[0] || '';
+            const date = row[1] || '';
+            const startHour = parseInt(row[2]) || 0;
+            const durationHours = parseInt(row[3]) || 1;
+            const type = row[4] || 'actividad';
+            
+            // Columna F: Ubicación (Limpia flechas y espacios extra)
+            let rawLocation = row[5] || '';
+            let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
+
+            const cost = row[6] || '';
+            const details = row[7] || '';
+
+            return {
+                title,
+                date,
+                startHour,
+                durationHours,
+                type,
+                location,
+                cost,
+                details
+            };
+        }).filter(e => e !== null);
+
+        localEvents = events;
+        buildGrid(events);
+    } catch (error) {
+        console.error('Error al cargar la planilla:', error);
+    }
 }
 // Carga Inicial
 renderHeaderDays();
