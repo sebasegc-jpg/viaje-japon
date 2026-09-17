@@ -384,29 +384,41 @@ function showModal(title, details, location, cost) {
     document.getElementById('modalTitle').innerText = title;
     
     let mapUrl = '#';
+    let isShortLink = false;
     let isRoute = false;
 
-    // Detectar si la ubicación es un trayecto (A ➔ B)
-    if (location && (location.includes('➔') || location.includes('->'))) {
-        isRoute = true;
-        const parts = location.split(/➔|->/);
-        const origin = encodeURIComponent(parts[0].trim());
-        const destination = encodeURIComponent(parts[1].trim());
-        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
-    } else if (location && location.trim() !== '') {
-        const destination = encodeURIComponent(location.trim());
-        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+    if (location && location.trim() !== '') {
+        const cleanLoc = location.trim();
+
+        // 1. Si es un link corto de Google Maps (maps.app.goo.gl o goo.gl)
+        if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
+            isShortLink = true;
+            mapUrl = cleanLoc;
+        } 
+        // 2. Si es un trayecto entre dos puntos (A ➔ B)
+        else if (cleanLoc.includes('➔') || cleanLoc.includes('->')) {
+            isRoute = true;
+            const parts = cleanLoc.replace(/->/g, '➔').split('➔');
+            const origin = encodeURIComponent(parts[0].trim() + ", Japan");
+            const destination = encodeURIComponent(parts[1].trim() + ", Japan");
+            mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+        } 
+        // 3. Si es un nombre o dirección en texto
+        else {
+            const destination = encodeURIComponent(cleanLoc + ", Japan");
+            mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+        }
     }
 
     document.getElementById('modalBody').innerHTML = `
-        <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
+        <p><b>Ubicación / Trayecto:</b> ${isShortLink ? 'Ver punto exacto en el mapa' : (location || 'No especificada')}</p>
         <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
         
         ${location ? `
             <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
-                <p style="margin-bottom: 0.3rem;"><b>🧭 Opciones de Navegación:</b></p>
+                <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
                 <p><a href="${mapUrl}" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
-                    📍 ${isRoute ? 'Ver trayecto completo en Google Maps' : 'Ver ubicación / Cómo llegar en Google Maps'}
+                    📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo (Origen ➔ Destino)' : 'Ver cómo llegar')}
                 </a></p>
             </div>
         ` : ''}
