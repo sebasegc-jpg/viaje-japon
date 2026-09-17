@@ -475,29 +475,34 @@
     }
 
     // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
+    // Consulta directa a Gemini API ajustada para claves AQ...
     async function askGemini(promptText) {
         const apiKey = getApiKey();
         if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
 
+        // URL actualizada para compatibilidad con la clave de tu proyecto
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        
         try {
             const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: promptText }]
+                    }]
+                })
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                const errData = await res.json();
-                console.error("Error respuesta Gemini:", errData);
-                if (res.status === 400 || res.status === 403) {
-                    localStorage.removeItem('GEMINI_API_KEY');
-                    return "La API Key ingresada no fue aceptada. Por favor, vuelve a presionar el botón e ingresa la clave de AI Studio.";
-                }
-                return "Error en la consulta a la IA.";
+                console.error("Detalle del error de Google:", data);
+                return `Error de la API: ${data.error?.message || 'Consulta rechazada'}`;
             }
 
-            const data = await res.json();
             return data.candidates[0].content.parts[0].text;
         } catch (err) {
             console.error("Error de red/servidor en Gemini API:", err);
