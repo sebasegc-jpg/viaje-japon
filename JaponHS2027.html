@@ -345,12 +345,17 @@
 
                         let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
 
-                        rowHTML += `<td rowspan="${duration}">
-                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${ev.title}', '${ev.details || ''}', '${locText}', '${ev.cost || ''}')">
-                                <div><b>${ev.title}</b></div>
-                                <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
-                            </div>
-                        </td>`;
+let safeTitle = ev.title.replace(/'/g, "\\'");
+let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
+let safeLoc = (locText || '').replace(/'/g, "\\'");
+let safeCost = (ev.cost || '').replace(/'/g, "\\'");
+
+rowHTML += `<td rowspan="${duration}">
+    <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
+        <div><b>${ev.title}</b></div>
+        <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
+    </div>
+</td>`;
                     } else {
                         rowHTML += `<td></td>`;
                     }
@@ -375,18 +380,17 @@
             }
         }
 
-        function showModal(title, details, location, cost) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalBody').innerHTML = `
-                <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
-                <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
-                <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
-                <p><b>Notas & Detalles:</b></p>
-                <p>${details || 'Sin detalles adicionales.'}</p>
-            `;
-            document.getElementById('eventModal').style.display = 'flex';
-        }
-
+      function showModal(title, details, location, cost) {
+    document.getElementById('modalTitle').innerText = title;
+    document.getElementById('modalBody').innerHTML = `
+        <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
+        <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
+        <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
+        <p><b>Notas & Detalles:</b></p>
+        <p>${details || 'Sin detalles adicionales.'}</p>
+    `;
+    document.getElementById('eventModal').style.display = 'flex';
+}
         function openAddModal() {
             document.getElementById('addModal').style.display = 'flex';
         }
@@ -438,25 +442,26 @@ function loadEventsFromSheet() {
     fetch(CSV_URL)
         .then(response => response.text())
         .then(data => {
+            localEvents = []; // Limpia duplicados locales
             const rows = data.split('\n').slice(1);
             rows.forEach(row => {
-                const cols = row.split(',');
-                if (cols.length >= 4) {
+                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Limpia separadores de comas
+                if (cols.length >= 4 && cols[0].trim() !== "") {
                     localEvents.push({
-                        title: cols[0],
-                        date: cols[1],
+                        title: cols[0].replace(/^"|"$/g, '').trim(),
+                        date: cols[1].replace(/^"|"$/g, '').trim(),
                         startHour: parseInt(cols[2]),
                         durationHours: parseInt(cols[3]),
-                        type: cols[4] || 'actividad',
-                        location: cols[5] || '',
-                        cost: cols[6] || '',
-                        details: cols[7] || ''
+                        type: cols[4] ? cols[4].replace(/^"|"$/g, '').trim() : 'actividad',
+                        location: cols[5] ? cols[5].replace(/^"|"$/g, '').trim() : '',
+                        cost: cols[6] ? cols[6].replace(/^"|"$/g, '').trim() : '',
+                        details: cols[7] ? cols[7].replace(/^"|"$/g, '').trim() : ''
                     });
                 }
             });
             buildGrid(localEvents);
         })
-        .catch(err => console.log("Cargando vista local."));
+        .catch(err => console.log("Error al cargar desde el Sheet:", err));
 }
 
 // Carga Inicial
