@@ -380,27 +380,42 @@ rowHTML += `<td rowspan="${duration}">
             }
         }
 
- function showModal(title, details, location, cost) {
+function showModal(title, details, location, cost) {
     document.getElementById('modalTitle').innerText = title;
     
-    // Genera enlace a Google Maps dinámico con soporte para transporte público/tren/auto
-    const mapRouteUrl = location ? 
-        `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}` : '#';
+    let mapUrl = '#';
+    let isRoute = false;
+
+    // Detectar si la ubicación es un trayecto (A ➔ B)
+    if (location && (location.includes('➔') || location.includes('->'))) {
+        isRoute = true;
+        const parts = location.split(/➔|->/);
+        const origin = encodeURIComponent(parts[0].trim());
+        const destination = encodeURIComponent(parts[1].trim());
+        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+    } else if (location && location.trim() !== '') {
+        const destination = encodeURIComponent(location.trim());
+        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+    }
 
     document.getElementById('modalBody').innerHTML = `
         <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
         <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
+        
         ${location ? `
-            <p style="margin-top: 0.5rem;">
-                <a href="${mapRouteUrl}" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: underline;">
-                    🗺️ Abrir ruta y opciones de transporte en Google Maps
-                </a>
-            </p>
+            <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
+                <p style="margin-bottom: 0.3rem;"><b>🧭 Opciones de Navegación:</b></p>
+                <p><a href="${mapUrl}" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
+                    📍 ${isRoute ? 'Ver trayecto completo en Google Maps' : 'Ver ubicación / Cómo llegar en Google Maps'}
+                </a></p>
+            </div>
         ` : ''}
-        <hr style="margin: 0.8rem 0; border: 0; border-top: 1px solid var(--border);">
+
+        <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
         <p><b>Notas & Detalles:</b></p>
         <p>${details || 'Sin detalles adicionales.'}</p>
     `;
+    
     document.getElementById('eventModal').style.display = 'flex';
 }
         function openAddModal() {
