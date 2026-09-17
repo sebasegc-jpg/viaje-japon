@@ -60,7 +60,7 @@
         .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; height: 75px; padding: 0.4rem; }
         .day-header { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
         .day-date { font-weight: 700; color: var(--text-dark); font-size: 0.85rem; }
-        .day-stay { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 0.2rem; font-size: 0.7rem; color: #1e40af; font-weight: 600; margin-top: 0.2rem; }
+        .day-stay { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 0.2rem; font-size: 0.7rem; color: #1e40af; font-weight: 600; margin-top: 0.2rem; cursor: pointer; }
 
         .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; height: 40px; }
 
@@ -190,7 +190,7 @@
             <form id="addEventForm" onsubmit="saveEvent(event)">
                 <div class="form-group">
                     <label>Título de la actividad / lugar</label>
-                    <input type="text" id="ev-title" required placeholder="Ej: Tren Bala Tokio ➔ Kioto">
+                    <input type="text" id="ev-title" required placeholder="Ej: Tren bala Tokio ➔ Kioto">
                 </div>
                 
                 <div style="display: flex; gap: 0.5rem;">
@@ -251,16 +251,10 @@
     </div>
 
     <script>
-        // Configuración de Fechas: Inicio en Lunes 21 de Septiembre de 2026
         const START_DATE = new Date(2026, 8, 21);
         let currentWeek = 1;
         let localEvents = [];
-
-        // Alojamientos
-        const accommodations = [
-            { start: '2026-09-21', end: '2026-09-25', name: 'Hotel Graphy Shibuya', city: 'Tokio', link: '#' },
-            { start: '2026-09-26', end: '2026-10-06', name: 'Fujitaya Kyoto', city: 'Kioto', link: 'https://www.booking.com/hotel/jp/fujitaya-kyoto.es-ar.html' }
-        ];
+        let accommodationsData = [];
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -289,23 +283,55 @@
             return dates;
         }
 
+        // Carga dinámicamente la pestaña Alojamientos desde Google Sheets (gid=1461163351)
+        async function loadAccommodationsFromSheet() {
+            const accCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=1461163351&single=true&output=csv';
+            try {
+                const response = await fetch(accCsvUrl);
+                const data = await response.text();
+                const rows = data.split(/\r?\n/).map(r => r.split(','));
+                
+                // Mapea Columna A (Nombre), C (CheckIn), D (CheckOut), F (Dirección/Maps)
+                accommodationsData = rows.slice(1).map(r => {
+                    if (r.length < 4) return null;
+                    const name = (r[0] || '').replace(/^"|"$/g, '').trim();
+                    const checkInRaw = (r[2] || '').replace(/^"|"$/g, '').trim();
+                    const checkOutRaw = (r[3] || '').replace(/^"|"$/g, '').trim();
+                    const mapUrl = (r[5] || '').replace(/^"|"$/g, '').trim();
+
+                    const startDate = checkInRaw.split(' ')[0];
+                    const endDate = checkOutRaw.split(' ')[0];
+
+                    return { name, start: startDate, end: endDate, mapUrl };
+                }).filter(a => a && a.name);
+
+                renderHeaderDays();
+            } catch (e) {
+                console.error("Error al cargar alojamientos:", e);
+            }
+        }
+
         function renderHeaderDays() {
             const headerRow = document.getElementById('table-header-days');
             const dates = getDatesForCurrentWeek();
-            // Array con estructura estricta de Lunes a Domingo
             const dayNamesLunesADomingo = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
             let html = `<th class="time-col">Hora</th>`;
 
             dates.forEach(d => {
                 let dateStr = d.toISOString().split('T')[0];
-                // Convertir el día de JS (0=Dom, 1=Lun...) a índice de Lunes a Domingo (0=Lun ... 6=Dom)
                 let dayIdx = (d.getDay() + 6) % 7;
                 let formattedDate = `${dayNamesLunesADomingo[dayIdx]} ${d.getDate()}/${d.getMonth()+1}`;
                 
-                // Buscar alojamiento activo
-                let acc = accommodations.find(a => dateStr >= a.start && dateStr <= a.end);
-                let stayHTML = acc ? `<div class="day-stay">🏨 <a href="${acc.link}" target="_blank" style="color:inherit;text-decoration:underline;">${acc.name}</a></div>` : `<div class="day-stay">Sin asignar</div>`;
+                // Buscar alojamiento dinámico
+                let acc = accommodationsData.find(a => dateStr >= a.start && dateStr <= a.end);
+                
+                let stayHTML = '<div class="day-stay">Sin asignar</div>';
+                if (acc) {
+                    const safeName = acc.name.replace(/'/g, "\\'");
+                    const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
+                    stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '')">🏨 ${acc.name}</div>`;
+                }
 
                 html += `<th>
                     <div class="day-header">
@@ -328,7 +354,6 @@
             for (let hour = 0; hour < 24; hour++) {
                 const tr = document.createElement('tr');
                 const hourFormatted = hour.toString().padStart(2, '0') + ':00';
-                
                 let rowHTML = `<td class="time-col">${hourFormatted}</td>`;
 
                 for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
@@ -344,18 +369,21 @@
                         }
 
                         let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
+                        if (ev.type === 'transporte' && (!ev.origin && !ev.destination)) {
+                            locText = ev.location || '';
+                        }
 
-let safeTitle = ev.title.replace(/'/g, "\\'");
-let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
-let safeLoc = (locText || '').replace(/'/g, "\\'");
-let safeCost = (ev.cost || '').replace(/'/g, "\\'");
+                        let safeTitle = ev.title.replace(/'/g, "\\'");
+                        let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
+                        let safeLoc = (locText || '').replace(/'/g, "\\'");
+                        let safeCost = (ev.cost || '').replace(/'/g, "\\'");
 
-rowHTML += `<td rowspan="${duration}">
-    <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
-        <div><b>${ev.title}</b></div>
-        <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
-    </div>
-</td>`;
+                        rowHTML += `<td rowspan="${duration}">
+                            <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
+                                <div><b>${ev.title}</b></div>
+                                <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
+                            </div>
+                        </td>`;
                     } else {
                         rowHTML += `<td></td>`;
                     }
@@ -380,68 +408,64 @@ rowHTML += `<td rowspan="${duration}">
             }
         }
 
-function showModal(title, details, location, cost) {
-    document.getElementById('modalTitle').innerText = title;
-    
-    let mapUrl = '#';
-    let isShortLink = false;
-    let isRoute = false;
+        function showModal(title, details, location, cost) {
+            document.getElementById('modalTitle').innerText = title;
+            
+            let mapUrl = '#';
+            let isShortLink = false;
+            let isRoute = false;
 
-    if (location && location.trim() !== '') {
-        const cleanLoc = location.trim();
+            if (location && location.trim() !== '') {
+                // Elimina comillas sobrantes que vienen del CSV
+                const cleanLoc = location.replace(/^"|"$/g, '').trim();
 
-        // 1. Si es un enlace corto de Google Maps (maps.app.goo.gl o goo.gl)
-        if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
-            isShortLink = true;
-            mapUrl = cleanLoc;
-        } 
-        else {
-            // Normalizar cualquier tipo de flecha o guion que venga desde la planilla
-            const normalized = cleanLoc.replace(/&rarr;/g, '->')
-                                        .replace(/➔/g, '->')
-                                        .replace(/→/g, '->')
-                                        .replace(/=>/g, '->');
+                if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
+                    isShortLink = true;
+                    mapUrl = cleanLoc;
+                } else {
+                    const normalized = cleanLoc.replace(/&rarr;/g, '->')
+                                                .replace(/➔/g, '->')
+                                                .replace(/→/g, '->')
+                                                .replace(/=>/g, '->');
 
-            // 2. Si es un trayecto entre dos puntos (A ➔ B)
-            if (normalized.includes('->')) {
-                isRoute = true;
-                const parts = normalized.split('->');
-                const originStr = parts[0].replace(/^"|"$/g, '').trim();
-                const destStr = parts[1].replace(/^"|"$/g, '').trim();
+                    if (normalized.includes('->')) {
+                        isRoute = true;
+                        const parts = normalized.split('->');
+                        const originStr = parts[0].replace(/^"|"$/g, '').trim();
+                        const destStr = parts[1].replace(/^"|"$/g, '').trim();
 
-                const origin = encodeURIComponent(originStr + ", Japan");
-                const destination = encodeURIComponent(destStr + ", Japan");
+                        const origin = encodeURIComponent(originStr + ", Japan");
+                        const destination = encodeURIComponent(destStr + ", Japan");
 
-                mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
-            } 
-            // 3. Si es un nombre de lugar o dirección fija
-            else {
-                const destination = encodeURIComponent(cleanLoc + ", Japan");
-                mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+                        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+                    } else {
+                        const destination = encodeURIComponent(cleanLoc + ", Japan");
+                        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+                    }
+                }
             }
+
+            document.getElementById('modalBody').innerHTML = `
+                <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
+                <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
+                
+                ${location ? `
+                    <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
+                        <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
+                        <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
+                            📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
+                        </a></p>
+                    </div>
+                ` : ''}
+
+                <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
+                <p><b>Notas & Detalles:</b></p>
+                <p>${details || 'Sin detalles adicionales.'}</p>
+            `;
+            
+            document.getElementById('eventModal').style.display = 'flex';
         }
-    }
 
-    document.getElementById('modalBody').innerHTML = `
-        <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
-        <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
-        
-        ${location ? `
-            <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
-                <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
-                <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
-                    📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
-                </a></p>
-            </div>
-        ` : ''}
-
-        <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
-        <p><b>Notas & Detalles:</b></p>
-        <p>${details || 'Sin detalles adicionales.'}</p>
-    `;
-    
-    document.getElementById('eventModal').style.display = 'flex';
-}
         function openAddModal() {
             document.getElementById('addModal').style.display = 'flex';
         }
@@ -450,109 +474,93 @@ function showModal(title, details, location, cost) {
             document.getElementById(modalId).style.display = 'none';
         }
 
-       function saveEvent(e) {
-    e.preventDefault();
+        function saveEvent(e) {
+            e.preventDefault();
 
-    const type = document.getElementById('ev-type').value;
+            const type = document.getElementById('ev-type').value;
 
-    const newEv = {
-        title: document.getElementById('ev-title').value,
-        date: document.getElementById('ev-date').value,
-        startHour: parseInt(document.getElementById('ev-hour').value),
-        durationHours: parseInt(document.getElementById('ev-duration').value),
-        type: type,
-        location: document.getElementById('ev-location').value,
-        origin: document.getElementById('ev-origin').value,
-        destination: document.getElementById('ev-destination').value,
-        cost: document.getElementById('ev-cost').value,
-        details: document.getElementById('ev-details').value
-    };
-
-    // 1. Mostrar de inmediato en pantalla
-    localEvents.push(newEv);
-    buildGrid(localEvents);
-
-    // 2. Guardar en Google Sheets (AQUÍ PEGAS TU URL)
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw42uc-z--DVqLAYsNZDLKagdz6jFAlxuTiz3aAzluBkyDRDJqi62szpjUwNHL3gRQtew/exec";
-
-    fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(newEv)
-    })
-    .then(res => console.log("Evento guardado con éxito en Google Sheet"))
-    .catch(err => console.error("Error al guardar:", err));
-
-    closeModal('addModal');
-    document.getElementById('addEventForm').reset();
-    toggleLocationFields();
-}
-        // Cargar eventos guardados de Google Sheets al iniciar
-async function loadEventsFromSheet() {
-    const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS1.../pub?gid=0&single=true&output=csv'; // Mantiene tu URL actual
-    try {
-        const response = await fetch(sheetCsvUrl);
-        const data = await response.text();
-        
-        // Split inteligente respetando comillas y saltos de línea
-        const rows = data.split(/\r?\n/).map(row => {
-            const result = [];
-            let insideQuote = false;
-            let entry = '';
-            for (let char of row) {
-                if (char === '"' && !insideQuote) insideQuote = true;
-                else if (char === '"' && insideQuote) insideQuote = false;
-                else if (char === ',' && !insideQuote) {
-                    result.push(entry.trim());
-                    entry = '';
-                } else entry += char;
-            }
-            result.push(entry.trim());
-            return result;
-        });
-
-        // Omitir encabezado (fila 0)
-        const events = rows.slice(1).map(row => {
-            if (row.length < 2) return null;
-            
-            // Mapeo exacto según tus columnas (A a H)
-            const title = row[0] || '';
-            const date = row[1] || '';
-            const startHour = parseInt(row[2]) || 0;
-            const durationHours = parseInt(row[3]) || 1;
-            const type = row[4] || 'actividad';
-            
-            // Columna F: Ubicación (Limpia flechas y espacios extra)
-            let rawLocation = row[5] || '';
-            let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
-
-            const cost = row[6] || '';
-            const details = row[7] || '';
-
-            return {
-                title,
-                date,
-                startHour,
-                durationHours,
-                type,
-                location,
-                cost,
-                details
+            const newEv = {
+                title: document.getElementById('ev-title').value,
+                date: document.getElementById('ev-date').value,
+                startHour: parseInt(document.getElementById('ev-hour').value),
+                durationHours: parseInt(document.getElementById('ev-duration').value),
+                type: type,
+                location: document.getElementById('ev-location').value,
+                origin: document.getElementById('ev-origin').value,
+                destination: document.getElementById('ev-destination').value,
+                cost: document.getElementById('ev-cost').value,
+                details: document.getElementById('ev-details').value
             };
-        }).filter(e => e !== null);
 
-        localEvents = events;
-        buildGrid(events);
-    } catch (error) {
-        console.error('Error al cargar la planilla:', error);
-    }
-}
-// Carga Inicial
-renderHeaderDays();
-buildGrid(localEvents);
-loadEventsFromSheet();
+            localEvents.push(newEv);
+            buildGrid(localEvents);
+
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw42uc-z--DVqLAYsNZDLKagdz6jFAlxuTiz3aAzluBkyDRDJqi62szpjUwNHL3gRQtew/exec";
+
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(newEv)
+            })
+            .then(res => console.log("Evento guardado con éxito en Google Sheet"))
+            .catch(err => console.error("Error al guardar:", err));
+
+            closeModal('addModal');
+            document.getElementById('addEventForm').reset();
+            toggleLocationFields();
+        }
+
+        async function loadEventsFromSheet() {
+            const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=0&single=true&output=csv';
+            try {
+                const response = await fetch(sheetCsvUrl);
+                const data = await response.text();
+                
+                const rows = data.split(/\r?\n/).map(row => {
+                    const result = [];
+                    let insideQuote = false;
+                    let entry = '';
+                    for (let char of row) {
+                        if (char === '"' && !insideQuote) insideQuote = true;
+                        else if (char === '"' && insideQuote) insideQuote = false;
+                        else if (char === ',' && !insideQuote) {
+                            result.push(entry.trim());
+                            entry = '';
+                        } else entry += char;
+                    }
+                    result.push(entry.trim());
+                    return result;
+                });
+
+                const events = rows.slice(1).map(row => {
+                    if (row.length < 2) return null;
+                    
+                    const title = (row[0] || '').replace(/^"|"$/g, '').trim();
+                    const date = (row[1] || '').replace(/^"|"$/g, '').trim();
+                    const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
+                    const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
+                    const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
+                    
+                    let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
+                    let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
+
+                    const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
+                    const details = (row[7] || '').replace(/^"|"$/g, '').trim();
+
+                    return { title, date, startHour, durationHours, type, location, cost, details };
+                }).filter(e => e !== null && e.title !== '');
+
+                localEvents = events;
+                buildGrid(events);
+            } catch (error) {
+                console.error('Error al cargar la planilla:', error);
+            }
+        }
+
         // Carga Inicial
         renderHeaderDays();
         buildGrid(localEvents);
+        loadAccommodationsFromSheet();
+        loadEventsFromSheet();
     </script>
 </body>
 </html>
