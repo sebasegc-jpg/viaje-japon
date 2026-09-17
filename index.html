@@ -251,11 +251,23 @@
     </div>
 
 <script>
-    const GEMINI_API_KEY = "AQ.Ab8RN6JHA6ANEmUgakmWj2d-Rz2qfiSNiLrOTmKoG0mHQE_9zg";
     let START_DATE = null;
     let currentWeek = 1;
     let localEvents = [];
     let accommodationsData = [];
+
+    // Obtener o solicitar la API Key de Gemini (Acepta cualquier formato de clave de Google AI Studio)
+    function getApiKey() {
+        let key = localStorage.getItem('GEMINI_API_KEY');
+        if (!key || key.length < 15) {
+            key = prompt("Ingresa tu API Key de Google AI Studio:");
+            if (key) {
+                key = key.trim();
+                localStorage.setItem('GEMINI_API_KEY', key);
+            }
+        }
+        return key;
+    }
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -448,7 +460,7 @@
                     let safeCost = (ev.cost || '').replace(/'/g, "\\'");
 
                     rowHTML += `<td rowspan="${duration}">
-                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}')">
+                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}', '${ev.date}')">
                             <div><b>${ev.title}</b></div>
                             <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
                         </div>
@@ -462,45 +474,118 @@
         }
     }
 
-    // --- INTEGRACIÓN CON GEMINI IA ---
+    // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
     async function askGemini(promptText) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const apiKey = getApiKey();
+        if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         try {
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }]
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                console.error("Error respuesta Gemini:", errData);
+                if (res.status === 400 || res.status === 403) {
+                    localStorage.removeItem('GEMINI_API_KEY');
+                    return "La API Key ingresada no fue aceptada. Por favor, vuelve a presionar el botón e ingresa la clave de AI Studio.";
+                }
+                return "Error en la consulta a la IA.";
+            }
+
             const data = await res.json();
             return data.candidates[0].content.parts[0].text;
         } catch (err) {
-            console.error("Error en Gemini API:", err);
-            return "No se pudo obtener la sugerencia de Gemini en este momento.";
+            console.error("Error de red/servidor en Gemini API:", err);
+            return "Error de conexión al consultar Gemini.";
         }
     }
 
-    async function analyzeWithAI(title, details, location) {
+    async function analyzeWithAI(title, details, location, dateStr) {
         const aiBox = document.getElementById('aiContent');
         aiBox.innerHTML = '<i>✨ Gemini está analizando lugares icónicos, enlaces y recomendaciones cercanas...</i>';
 
-        const prompt = `Actúa como un guía de viajes experto en Japón y cultura Pop/Anime.
-Analiza este evento de mi itinerario:
-- Lugar/Actividad: ${title}
-- Ubicación/Trayecto: ${location}
-- Notas/Links guardados: ${details}
+        let evDate = parseDateStr(dateStr);
+        let acc = accommodationsData.find(a => {
+            let s = parseDateStr(a.start), e = parseDateStr(a.end);
+            return s && e && evDate && evDate >= s && evDate <= e;
+        });
+        let currentHotel = acc ? acc.name : "Hotel en Kioto/Tokio";
 
-Responde de forma concisa (máximo 3 párrafos cortos) con viñetas:
-1. Si hay un link o reel, resume qué ver o hacer allí y tiempos recomendados de caminata/traslado.
-2. Menciona si hay alguna referencia de Anime/Manga, lugar histórico o punto icónico famoso muy cerca (ej. Slam Dunk, Your Name, templos clave).
-3. Dame un tip práctico para aprovechar el lugar.`;
+        const prompt = `Actúa como un guía experto en Japón y cultura pop/anime.
+Tengo este evento programado:
+- Actividad: ${title}
+- Ubicación / Link: ${location}
+- Hotel asignado ese día: ${currentHotel}
+- Notas adicionales: ${details}
+
+Instrucciones de respuesta:
+1. Si la ubicación es un enlace o punto específico (ej. Parque Nara), dime el tiempo exacto estimado de traslado en tren/caminata desde el hotel (${currentHotel}).
+2. Menciona referencias de anime/manga (como Slam Dunk, Your Name, etc.) o puntos icónicos históricos a menos de 15 minutos caminando de ahí.
+3. Dame un tip práctico y rápido. Responde en 3 viñetas cortas.`;
 
         const responseText = await askGemini(prompt);
         aiBox.innerHTML = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     }
 
-    function showModal(title, details, location, cost) {
+    async function populateAutoRecommendations() {
+        const recomContainer = document.getElementById('recom-container');
+        const showsContainer = document.getElementById('shows-container');
+
+        if (!recomContainer || !showsContainer) return;
+
+        recomContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">✨ Gemini está buscando spots de anime y lugares populares cerca de tus destinos...</p>';
+        showsContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">✨ Gemini está buscando shows, festivales y cartelera cultural...</p>';
+
+        let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ');
+        if (!cities) cities = "Tokio, Kioto, Nara";
+
+        const promptRecom = `Para un viaje a Japón visitando (${cities}), dame 4 recomendaciones imperdibles con referencias a Animes/Mangas famosos o Spots Populares de Reels. 
+Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
+[{"title": "Lugar", "city": "Ciudad", "category": "Anime / Spot", "desc": "Descripción breve"}]`;
+
+        const promptShows = `Para las ciudades (${cities}), dame 3 sugerencias de Shows, Festivales tradicionales (Matsuri) o Eventos culturales destacados. 
+Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
+[{"title": "Nombre Evento", "city": "Lugar", "category": "Show/Festival", "desc": "Detalle breve"}]`;
+
+        try {
+            const rawRecom = await askGemini(promptRecom);
+            const cleanRecom = rawRecom.replace(/```json|```/g, '').trim();
+            const recomList = JSON.parse(cleanRecom);
+
+            recomContainer.innerHTML = recomList.map(r => `
+                <div style="background:var(--card-bg); padding:1rem; border:1px solid var(--border); border-radius:8px;">
+                    <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:bold;">${r.category}</span>
+                    <h4 style="margin:0.5rem 0 0.2rem 0;">${r.title} (${r.city})</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">${r.desc}</p>
+                </div>
+            `).join('');
+        } catch (e) {
+            recomContainer.innerHTML = '<p style="color:var(--text-muted);">Haz clic en un evento del itinerario para consultar a Gemini.</p>';
+        }
+
+        try {
+            const rawShows = await askGemini(promptShows);
+            const cleanShows = rawShows.replace(/```json|```/g, '').trim();
+            const showsList = JSON.parse(cleanShows);
+
+            showsContainer.innerHTML = showsList.map(s => `
+                <div style="background:var(--card-bg); padding:1rem; border:1px solid var(--border); border-radius:8px;">
+                    <span style="font-size:0.7rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; font-weight:bold;">${s.category}</span>
+                    <h4 style="margin:0.5rem 0 0.2rem 0;">${s.title} (${s.city})</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">${s.desc}</p>
+                </div>
+            `).join('');
+        } catch (e) {
+            showsContainer.innerHTML = '<p style="color:var(--text-muted);">Haz clic en un evento del itinerario para consultar a Gemini.</p>';
+        }
+    }
+
+    function showModal(title, details, location, cost, dateStr) {
         document.getElementById('modalTitle').innerText = title;
         
         let mapUrl = '#';
@@ -549,9 +634,9 @@ Responde de forma concisa (máximo 3 párrafos cortos) con viñetas:
             <div style="margin-top: 1rem; padding: 0.8rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                 <p style="font-weight: bold; color: #166534; margin-bottom: 0.4rem;">🤖 Asistente Gemini IA:</p>
                 <div id="aiContent" style="font-size: 0.85rem; color: #15803d;">
-                    <button onclick="analyzeWithAI('${title.replace(/'/g, "\\'")}', '${details.replace(/'/g, "\\'")}', '${(location||'').replace(/'/g, "\\'")}')" 
+                    <button onclick="analyzeWithAI('${title.replace(/'/g, "\\'")}', '${details.replace(/'/g, "\\'")}', '${(location||'').replace(/'/g, "\\'")}', '${dateStr}')" 
                             style="background: #166534; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">
-                        🔍 Analizar lugar, links y buscar referencias de Anime cercanas
+                        🔍 Calcular traslados desde mi hotel y buscar referencias de Anime
                     </button>
                 </div>
             </div>
@@ -609,6 +694,7 @@ Responde de forma concisa (máximo 3 párrafos cortos) con viñetas:
         autoDetectStartDate();
         renderHeaderDays();
         buildGrid(localEvents);
+        populateAutoRecommendations();
     }
 
     initApp();
