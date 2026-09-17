@@ -444,10 +444,9 @@ function loadEventsFromSheet() {
         .then(data => {
             localEvents = [];
             const lines = data.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            const rows = lines.slice(1); // Salta la fila 1 de encabezados
+            const rows = lines.slice(1); // Omitir la Fila 1 de encabezados
             
             rows.forEach(row => {
-                // Separar respetando comillas
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
                 if (cols.length >= 4 && cols[0]) {
