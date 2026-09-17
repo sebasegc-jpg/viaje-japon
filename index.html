@@ -284,32 +284,31 @@
         }
 
         // Carga dinámicamente la pestaña Alojamientos desde Google Sheets (gid=1461163351)
-        async function loadAccommodationsFromSheet() {
-            const accCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=1461163351&single=true&output=csv';
-            try {
-                const response = await fetch(accCsvUrl);
-                const data = await response.text();
-                const rows = data.split(/\r?\n/).map(r => r.split(','));
-                
-                // Mapea Columna A (Nombre), C (CheckIn), D (CheckOut), F (Dirección/Maps)
-                accommodationsData = rows.slice(1).map(r => {
-                    if (r.length < 4) return null;
-                    const name = (r[0] || '').replace(/^"|"$/g, '').trim();
-                    const checkInRaw = (r[2] || '').replace(/^"|"$/g, '').trim();
-                    const checkOutRaw = (r[3] || '').replace(/^"|"$/g, '').trim();
-                    const mapUrl = (r[5] || '').replace(/^"|"$/g, '').trim();
+      async function loadAccommodationsFromSheet() {
+    const accCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=1461163351&single=true&output=csv';
+    try {
+        const response = await fetch(accCsvUrl);
+        const data = await response.text();
+        const rows = data.split(/\r?\n/).map(r => r.split(','));
+        
+        accommodationsData = rows.slice(1).map(r => {
+            if (r.length < 4) return null;
+            const name = (r[0] || '').replace(/^"|"$/g, '').trim();
+            const checkInRaw = (r[2] || '').replace(/^"|"$/g, '').trim();
+            const checkOutRaw = (r[3] || '').replace(/^"|"$/g, '').trim();
+            const mapUrl = (r[5] || '').replace(/^"|"$/g, '').trim();
 
-                    const startDate = checkInRaw.split(' ')[0];
-                    const endDate = checkOutRaw.split(' ')[0];
+            const startDate = checkInRaw.split(' ')[0];
+            const endDate = checkOutRaw.split(' ')[0];
 
-                    return { name, start: startDate, end: endDate, mapUrl };
-                }).filter(a => a && a.name);
+            return { name, start: startDate, end: endDate, mapUrl };
+        }).filter(a => a && a.name);
 
-                renderHeaderDays();
-            } catch (e) {
-                console.error("Error al cargar alojamientos:", e);
-            }
-        }
+        renderHeaderDays();
+    } catch (e) {
+        console.error("Error al cargar alojamientos:", e);
+    }
+}
 
         function renderHeaderDays() {
             const headerRow = document.getElementById('table-header-days');
@@ -509,53 +508,52 @@
             toggleLocationFields();
         }
 
-        async function loadEventsFromSheet() {
-            const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=0&single=true&output=csv';
-            try {
-                const response = await fetch(sheetCsvUrl);
-                const data = await response.text();
-                
-                const rows = data.split(/\r?\n/).map(row => {
-                    const result = [];
-                    let insideQuote = false;
-                    let entry = '';
-                    for (let char of row) {
-                        if (char === '"' && !insideQuote) insideQuote = true;
-                        else if (char === '"' && insideQuote) insideQuote = false;
-                        else if (char === ',' && !insideQuote) {
-                            result.push(entry.trim());
-                            entry = '';
-                        } else entry += char;
-                    }
+async function loadEventsFromSheet() {
+    const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS17k0zWjq4OkF3nHqD5_9fnFRHBPUF13wWrarlwUjFrto/pub?gid=0&single=true&output=csv';
+    try {
+        const response = await fetch(sheetCsvUrl);
+        const data = await response.text();
+        
+        const rows = data.split(/\r?\n/).map(row => {
+            const result = [];
+            let insideQuote = false;
+            let entry = '';
+            for (let char of row) {
+                if (char === '"' && !insideQuote) insideQuote = true;
+                else if (char === '"' && insideQuote) insideQuote = false;
+                else if (char === ',' && !insideQuote) {
                     result.push(entry.trim());
-                    return result;
-                });
-
-                const events = rows.slice(1).map(row => {
-                    if (row.length < 2) return null;
-                    
-                    const title = (row[0] || '').replace(/^"|"$/g, '').trim();
-                    const date = (row[1] || '').replace(/^"|"$/g, '').trim();
-                    const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
-                    const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
-                    const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
-                    
-                    let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
-                    let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
-
-                    const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
-                    const details = (row[7] || '').replace(/^"|"$/g, '').trim();
-
-                    return { title, date, startHour, durationHours, type, location, cost, details };
-                }).filter(e => e !== null && e.title !== '');
-
-                localEvents = events;
-                buildGrid(events);
-            } catch (error) {
-                console.error('Error al cargar la planilla:', error);
+                    entry = '';
+                } else entry += char;
             }
-        }
+            result.push(entry.trim());
+            return result;
+        });
 
+        const events = rows.slice(1).map(row => {
+            if (row.length < 2) return null;
+            
+            const title = (row[0] || '').replace(/^"|"$/g, '').trim();
+            const date = (row[1] || '').replace(/^"|"$/g, '').trim();
+            const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
+            const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
+            const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
+            
+            let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
+            let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
+
+            const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
+            const details = (row[7] || '').replace(/^"|"$/g, '').trim();
+
+            return { title, date, startHour, durationHours, type, location, cost, details };
+        }).filter(e => e !== null && e.title !== '');
+
+        localEvents = events;
+        buildGrid(events);
+    } catch (error) {
+        console.error('Error al cargar la planilla:', error);
+    }
+}
         // Carga Inicial
         renderHeaderDays();
         buildGrid(localEvents);
