@@ -380,12 +380,24 @@ rowHTML += `<td rowspan="${duration}">
             }
         }
 
-      function showModal(title, details, location, cost) {
+ function showModal(title, details, location, cost) {
     document.getElementById('modalTitle').innerText = title;
+    
+    // Genera enlace a Google Maps dinámico con soporte para transporte público/tren/auto
+    const mapRouteUrl = location ? 
+        `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}` : '#';
+
     document.getElementById('modalBody').innerHTML = `
         <p><b>Ubicación / Trayecto:</b> ${location || 'No especificada'}</p>
         <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
-        <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
+        ${location ? `
+            <p style="margin-top: 0.5rem;">
+                <a href="${mapRouteUrl}" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: underline;">
+                    🗺️ Abrir ruta y opciones de transporte en Google Maps
+                </a>
+            </p>
+        ` : ''}
+        <hr style="margin: 0.8rem 0; border: 0; border-top: 1px solid var(--border);">
         <p><b>Notas & Detalles:</b></p>
         <p>${details || 'Sin detalles adicionales.'}</p>
     `;
