@@ -476,12 +476,13 @@
 
     // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
     // Consulta directa a Gemini API ajustada para claves AQ...
-   async function askGemini(promptText) {
+ // Consulta directa a Gemini API con modelo v1 actualizado
+    async function askGemini(promptText) {
         const apiKey = getApiKey();
         if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
 
-        // Endpoint oficial y estable (v1) para gemini-1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Usamos gemini-2.0-flash (el estándar actual habilitado para v1)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         
         try {
             const res = await fetch(url, {
@@ -500,6 +501,10 @@
 
             if (!res.ok) {
                 console.error("Detalle del error de Google:", data);
+                // Si gemini-2.0-flash aún no se desplegó en tu región, intenta con gemini-1.5-flash-latest
+                if (data.error?.message?.includes("not found")) {
+                    return await askGeminiFallback(promptText, apiKey);
+                }
                 return `Error de la API: ${data.error?.message || 'Consulta rechazada'}`;
             }
 
@@ -510,6 +515,22 @@
         }
     }
 
+    // Modelo secundario de respaldo
+    async function askGeminiFallback(promptText, apiKey) {
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        try {
+            const res = await fetch(fallbackUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            });
+            const data = await res.json();
+            if (!res.ok) return `Error de la API: ${data.error?.message || 'Consulta rechazada'}`;
+            return data.candidates[0].content.parts[0].text;
+        } catch (err) {
+            return "Error de conexión al consultar Gemini.";
+        }
+    }
     async function analyzeWithAI(title, details, location, dateStr) {
         const aiBox = document.getElementById('aiContent');
         aiBox.innerHTML = '<i>✨ Gemini está analizando lugares icónicos, enlaces y recomendaciones cercanas...</i>';
