@@ -477,44 +477,39 @@
     // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
     // Consulta directa a Gemini API ajustada para claves AQ...
  // Consulta directa a Gemini API con modelo v1 actualizado
+  // Consulta directa a Gemini API compatible con Gemini 3.6 Flash
     async function askGemini(promptText) {
         const apiKey = getApiKey();
         if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
 
-        // Usamos gemini-2.0-flash (el estándar actual habilitado para v1)
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: promptText }]
-                    }]
-                })
-            });
+        // Endpoints de la API priorizando Gemini 3.6 Flash
+        const endpoints = [
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+        ];
 
-            const data = await res.json();
+        for (let url of endpoints) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
 
-            if (!res.ok) {
-                console.error("Detalle del error de Google:", data);
-                // Si gemini-2.0-flash aún no se desplegó en tu región, intenta con gemini-1.5-flash-latest
-                if (data.error?.message?.includes("not found")) {
-                    return await askGeminiFallback(promptText, apiKey);
+                const data = await res.json();
+                if (res.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                    return data.candidates[0].content.parts[0].text;
+                } else if (data.error) {
+                    console.warn("Intento con endpoint falló:", url, data.error.message);
                 }
-                return `Error de la API: ${data.error?.message || 'Consulta rechazada'}`;
+            } catch (err) {
+                console.warn("Error de red intentando con endpoint:", url, err);
             }
-
-            return data.candidates[0].content.parts[0].text;
-        } catch (err) {
-            console.error("Error de red/servidor en Gemini API:", err);
-            return "Error de conexión al consultar Gemini.";
         }
-    }
 
+        return "No se pudo conectar con Gemini. Revisa que tu clave de AI Studio tenga los permisos activos.";
+    }
     // Modelo secundario de respaldo
     async function askGeminiFallback(promptText, apiKey) {
         const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
