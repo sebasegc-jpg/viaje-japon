@@ -109,6 +109,9 @@
                 <button class="tab-btn" onclick="switchTab('shows')">
                     <i class="fa-solid fa-ticket"></i> Shows & Eventos
                 </button>
+                <button class="tab-btn" onclick="switchTab('gastos')">
+                    <i class="fa-solid fa-wallet"></i> Gastos
+                </button>
             </nav>
 
             <div class="external-links">
@@ -166,6 +169,44 @@
         <section id="shows" class="tab-content">
             <h3>Cartelera de Shows & Conciertos</h3>
             <div class="recom-grid" id="shows-container"></div>
+        </section>
+
+        <!-- PESTAÑA 5: GASTOS -->
+        <section id="gastos" class="tab-content">
+            <h3>Control de Gastos & Presupuesto</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Registra compras o pagos realizados en el viaje.</p>
+            <form id="expense-form" onsubmit="addExpense(event)" style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); max-width:450px;">
+                <div class="form-group">
+                    <label>Fecha:</label>
+                    <input type="date" id="exp-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Concepto / Detalle:</label>
+                    <input type="text" id="exp-concept" required placeholder="Ej: Entradas Universal Studios">
+                </div>
+                <div class="form-group">
+                    <label>Monto en Yenes (JPY ¥):</label>
+                    <input type="number" id="exp-jpy" required placeholder="Ej: 8500">
+                </div>
+                <div class="form-group">
+                    <label>Pagado por:</label>
+                    <select id="exp-payer">
+                        <option value="Sebas">Sebas</option>
+                        <option value="Hilsa">Hilsa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoría:</label>
+                    <select id="exp-category">
+                        <option value="Comida">Comida / Bebida</option>
+                        <option value="Transporte">Transporte / Trenes</option>
+                        <option value="Alojamiento">Alojamiento</option>
+                        <option value="Entradas">Entradas / Tours</option>
+                        <option value="Compras">Compras / Souvenirs</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-add-event" style="width:100%; justify-center;">➕ Registrar Gasto</button>
+            </form>
         </section>
     </main>
 
@@ -251,29 +292,26 @@
     </div>
 
 <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpzehPnmQF6Uoi_AGncV5LFCqKx4G1Kj8Pm1xhK6_E1DKRhlyr4bzH7HXkxMNvhmeCBg/exec";
+
     let START_DATE = null;
     let currentWeek = 1;
     let localEvents = [];
     let accommodationsData = [];
+    let currentKeyIndex = 0;
 
-    // Obtener o solicitar la API Key de Gemini (Acepta cualquier formato de clave de Google AI Studio)
-    function getApiKey() {
-        let key = localStorage.getItem('GEMINI_API_KEY');
-        if (!key || key.length < 15) {
-            key = prompt("Ingresa tu API Key de Google AI Studio:");
-            if (key) {
-                key = key.trim();
-                localStorage.setItem('GEMINI_API_KEY', key);
-            }
-        }
-        return key;
-    }
+    let currentModalEventTitle = "";
+    let currentModalEventStart = "";
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+        
+        const target = document.getElementById(tabId);
+        if (target) target.classList.add('active');
         if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+        if (tabId === 'reels' || tabId === 'shows') updateAIViews();
     }
 
     function setWeek(weekNum) {
@@ -290,14 +328,10 @@
         let clean = rawDate.split(' ')[0].replace(/^"|"$/g, '').trim();
         if (clean.includes('/')) {
             let parts = clean.split('/');
-            if (parts.length === 3) {
-                return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-            }
+            if (parts.length === 3) return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
         } else if (clean.includes('-')) {
             let parts = clean.split('-');
-            if (parts.length === 3) {
-                return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            }
+            if (parts.length === 3) return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         }
         return null;
     }
@@ -474,268 +508,148 @@
         }
     }
 
-    // --- CONEXIÓN DIRECTA Y AUTOMÁTICA CON GEMINI ---
-    // Consulta directa a Gemini API ajustada para claves AQ...
- // Consulta directa a Gemini API con modelo v1 actualizado
-  // Consulta directa a Gemini API compatible con Gemini 3.6 Flash
-    async function askGemini(promptText) {
-        const apiKey = getApiKey();
-        if (!apiKey) return "Proporciona una API Key para consultar a Gemini.";
+    function getApiKeys() {
+        let storedKeys = localStorage.getItem('GEMINI_API_KEYS');
+        if (!storedKeys) {
+            let input = prompt("Ingresa tus API Keys de Gemini (hasta 3 separadas por coma):");
+            if (input) {
+                storedKeys = input.trim();
+                localStorage.setItem('GEMINI_API_KEYS', storedKeys);
+            } else {
+                return [];
+            }
+        }
+        return storedKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    }
 
-        // Endpoints de la API priorizando Gemini 3.6 Flash
-        const endpoints = [
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-            `https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-        ];
+    async function analyzeWithAI(title, details, location, dateStr, forceRefresh = false) {
+        const cacheKey = 'AI_CACHE_' + title.replace(/\s+/g, '_');
+        
+        if (!forceRefresh) {
+            const cachedData = localStorage.getItem(cacheKey);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                displayAIResult(title, details, location, dateStr, parsed.text);
+                return;
+            }
+        }
 
-        for (let url of endpoints) {
+        const keys = getApiKeys();
+        if (keys.length === 0) return;
+
+        const aiContent = document.getElementById('aiContent');
+        if (aiContent) aiContent.innerHTML = '⏳ Consultando al asistente de IA...';
+
+        const promptText = `Eres un guía experto en viajes a Japón. Analiza esta actividad:
+        - Evento: ${title}
+        - Fecha/Hora: ${dateStr}
+        - Ubicación: ${location}
+        - Detalles: ${details}
+
+        Instrucciones:
+        1. Si es un lugar/templo fijo, dame 2 tips prácticos de transporte/llegada.
+        2. Si detectas eventos temporales cerca de esa fecha (shows, conciertos, pop-ups), etiquétalos explícitamente como [TEMPORAL].
+        3. Responde en español y muy directo en viñetas cortas.`;
+
+        let success = false;
+
+        for (let i = 0; i < keys.length; i++) {
+            const activeKey = keys[(currentKeyIndex + i) % keys.length];
+            
             try {
-                const res = await fetch(url, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
                 });
 
-                const data = await res.json();
-                if (res.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                    return data.candidates[0].content.parts[0].text;
-                } else if (data.error) {
-                    console.warn("Intento con endpoint falló:", url, data.error.message);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error.message);
+
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const rawText = data.candidates[0].content.parts[0].text;
+                    
+                    const cachePayload = { title: title, dateStr: dateStr, text: rawText, timestamp: new Date().toISOString() };
+                    localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
+
+                    displayAIResult(title, details, location, dateStr, rawText);
+                    updateAIViews();
+                    saveAIToSheet(title, rawText); // Sincroniza con Google Sheets
+
+                    success = true;
+                    currentKeyIndex = (currentKeyIndex + i) % keys.length;
+                    break; 
                 }
             } catch (err) {
-                console.warn("Error de red intentando con endpoint:", url, err);
+                console.warn(`Clave ${i + 1} falló. Probando siguiente...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
 
-        return "No se pudo conectar con Gemini. Revisa que tu clave de AI Studio tenga los permisos activos.";
-    }
-    // Modelo secundario de respaldo
-    async function askGeminiFallback(promptText, apiKey) {
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-        try {
-            const res = await fetch(fallbackUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-            });
-            const data = await res.json();
-            if (!res.ok) return `Error de la API: ${data.error?.message || 'Consulta rechazada'}`;
-            return data.candidates[0].content.parts[0].text;
-        } catch (err) {
-            return "Error de conexión al consultar Gemini.";
-        }
-    }
- // Variable global para controlar la clave activa
-let currentKeyIndex = 0;
-
-function getApiKeys() {
-    let storedKeys = localStorage.getItem('GEMINI_API_KEYS');
-    if (!storedKeys) {
-        let input = prompt("Ingresa tus API Keys de Gemini (puedes poner hasta 3 separadas por coma):");
-        if (input) {
-            storedKeys = input.trim();
-            localStorage.setItem('GEMINI_API_KEYS', storedKeys);
-        } else {
-            return [];
-        }
-    }
-    return storedKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
-}
-
-async function analyzeWithAI(title, details, location, dateStr, forceRefresh = false) {
-    const cacheKey = 'AI_CACHE_' + title.replace(/\s+/g, '_');
-    
-    // 1. Si no es un refresco forzado, buscamos en el almacenamiento guardado primero
-    if (!forceRefresh) {
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-            const parsed = JSON.parse(cachedData);
-            displayAIResult(title, details, location, dateStr, parsed.text);
-            return;
+        if (!success && aiContent) {
+            aiContent.innerHTML = `
+                <span style="color:#b91c1c;">
+                    ❌ Todas las claves configuradas agotaron su cuota por el momento.
+                    <button onclick="localStorage.removeItem('GEMINI_API_KEYS'); alert('Claves borradas.');" style="margin-left:5px; cursor:pointer;">
+                        Reingresar Claves
+                    </button>
+                </span>`;
         }
     }
 
-    const keys = getApiKeys();
-    if (keys.length === 0) return;
+    function displayAIResult(title, details, location, dateStr, rawText) {
+        const aiContent = document.getElementById('aiContent');
+        if (!aiContent) return;
 
-    const aiContent = document.getElementById('aiContent');
-    if (aiContent) aiContent.innerHTML = '⏳ Consultando al asistente de IA...';
-
-    const promptText = `Eres un guía experto en viajes a Japón. Analiza esta actividad:
-    - Evento: ${title}
-    - Fecha/Hora: ${dateStr}
-    - Ubicación: ${location}
-    - Detalles: ${details}
-
-    Instrucciones:
-    1. Si es un lugar/templo fijo, dame 2 tips prácticos de transporte/llegada.
-    2. Si detectas eventos temporales cerca de esa fecha (shows, conciertos, pop-ups), etiquétalos explícitamente como [TEMPORAL].
-    3. Responde en español y muy directo en viñetas cortas.`;
-
-    let success = false;
-
-    for (let i = 0; i < keys.length; i++) {
-        const activeKey = keys[(currentKeyIndex + i) % keys.length];
-        
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-            });
-
-            const data = await response.json();
-
-            if (data.error) throw new Error(data.error.message);
-
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const rawText = data.candidates[0].content.parts[0].text;
-                
-                // 2. Guardamos la respuesta en el caché local
-                const cachePayload = {
-                    title: title,
-                    dateStr: dateStr,
-                    text: rawText,
-                    timestamp: new Date().toISOString()
-                };
-                localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
-
-                // 3. Renderizamos el resultado y actualizamos las pestañas
-                displayAIResult(title, details, location, dateStr, rawText);
-                updateAIViews();
-
-                success = true;
-                currentKeyIndex = (currentKeyIndex + i) % keys.length;
-                break; 
-            }
-        } catch (err) {
-            console.warn(`Clave ${i + 1} falló. Probando siguiente...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-    }
-
-    if (!success && aiContent) {
+        const resultText = rawText.replace(/\n/g, '<br>');
         aiContent.innerHTML = `
-            <span style="color:#b91c1c;">
-                ❌ Todas las claves configuradas agotaron su cuota por el momento.
-                <button onclick="localStorage.removeItem('GEMINI_API_KEYS'); alert('Claves borradas.');" style="margin-left:5px; cursor:pointer;">
-                    Reingresar Claves
-                </button>
-            </span>`;
-    }
-}
-
-// Función auxiliar para mostrar el resultado en el modal
-function displayAIResult(title, details, location, dateStr, rawText) {
-    const aiContent = document.getElementById('aiContent');
-    if (!aiContent) return;
-
-    const resultText = rawText.replace(/\n/g, '<br>');
-    aiContent.innerHTML = `
-        <div style="line-height:1.4;">${resultText}</div>
-        <div style="margin-top:10px; font-size:0.8em; text-align:right;">
-            <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
-        </div>`;
-}
-
-// Función para poblar la pestaña de Recomendaciones y Shows & Eventos
-function updateAIViews() {
-    const recomContainer = document.getElementById('recom-container');
-    const showsContainer = document.getElementById('shows-container');
-
-    let recomHTML = '';
-    let showsHTML = '';
-
-    // Recorremos todo lo guardado en el caché local
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('AI_CACHE_')) {
-            const data = JSON.parse(localStorage.getItem(key));
-            const formattedText = data.text.replace(/\n/g, '<br>');
-
-            const cardHTML = `
-                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <h4 style="margin:0 0 6px 0; color:#1f2937; font-size:1em;">📍 ${data.title} <small style="color:#6b7280;">(${data.dateStr})</small></h4>
-                    <div style="font-size:0.9em; color:#374151; line-height:1.4;">${formattedText}</div>
-                </div>`;
-
-            // Si contiene la etiqueta [TEMPORAL], se envía a la pestaña de Shows & Eventos
-            if (data.text.includes('[TEMPORAL]')) {
-                showsHTML += cardHTML;
-            } else {
-                recomHTML += cardHTML;
-            }
-        }
+            <div style="line-height:1.4;">${resultText}</div>
+            <div style="margin-top:10px; font-size:0.8em; text-align:right;">
+                <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
+            </div>`;
     }
 
-    if (recomContainer && recomHTML !== '') recomContainer.innerHTML = recomHTML;
-    if (showsContainer && showsHTML !== '') showsContainer.innerHTML = showsHTML;
-}
-
-// Cargar las vistas guardadas al iniciar la app
-document.addEventListener('DOMContentLoaded', updateAIViews);
-    async function populateAutoRecommendations() {
+    function updateAIViews() {
         const recomContainer = document.getElementById('recom-container');
         const showsContainer = document.getElementById('shows-container');
 
-        if (!recomContainer || !showsContainer) return;
+        let recomHTML = '';
+        let showsHTML = '';
 
-        recomContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">✨ Gemini está buscando spots de anime y lugares populares cerca de tus destinos...</p>';
-        showsContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">✨ Gemini está buscando shows, festivales y cartelera cultural...</p>';
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('AI_CACHE_')) {
+                const data = JSON.parse(localStorage.getItem(key));
+                const formattedText = data.text.replace(/\n/g, '<br>');
 
-        let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ');
-        if (!cities) cities = "Tokio, Kioto, Nara";
+                const cardHTML = `
+                    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h4 style="margin:0 0 6px 0; color:#1f2937; font-size:1em;">📍 ${data.title} <small style="color:#6b7280;">(${data.dateStr || ''})</small></h4>
+                        <div style="font-size:0.9em; color:#374151; line-height:1.4;">${formattedText}</div>
+                    </div>`;
 
-        const promptRecom = `Para un viaje a Japón visitando (${cities}), dame 4 recomendaciones imperdibles con referencias a Animes/Mangas famosos o Spots Populares de Reels. 
-Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
-[{"title": "Lugar", "city": "Ciudad", "category": "Anime / Spot", "desc": "Descripción breve"}]`;
-
-        const promptShows = `Para las ciudades (${cities}), dame 3 sugerencias de Shows, Festivales tradicionales (Matsuri) o Eventos culturales destacados. 
-Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
-[{"title": "Nombre Evento", "city": "Lugar", "category": "Show/Festival", "desc": "Detalle breve"}]`;
-
-        try {
-            const rawRecom = await askGemini(promptRecom);
-            const cleanRecom = rawRecom.replace(/```json|```/g, '').trim();
-            const recomList = JSON.parse(cleanRecom);
-
-            recomContainer.innerHTML = recomList.map(r => `
-                <div style="background:var(--card-bg); padding:1rem; border:1px solid var(--border); border-radius:8px;">
-                    <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:bold;">${r.category}</span>
-                    <h4 style="margin:0.5rem 0 0.2rem 0;">${r.title} (${r.city})</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted);">${r.desc}</p>
-                </div>
-            `).join('');
-        } catch (e) {
-            recomContainer.innerHTML = '<p style="color:var(--text-muted);">Haz clic en un evento del itinerario para consultar a Gemini.</p>';
+                if (data.text.includes('[TEMPORAL]')) {
+                    showsHTML += cardHTML;
+                } else {
+                    recomHTML += cardHTML;
+                }
+            }
         }
 
-        try {
-            const rawShows = await askGemini(promptShows);
-            const cleanShows = rawShows.replace(/```json|```/g, '').trim();
-            const showsList = JSON.parse(cleanShows);
-
-            showsContainer.innerHTML = showsList.map(s => `
-                <div style="background:var(--card-bg); padding:1rem; border:1px solid var(--border); border-radius:8px;">
-                    <span style="font-size:0.7rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; font-weight:bold;">${s.category}</span>
-                    <h4 style="margin:0.5rem 0 0.2rem 0;">${s.title} (${s.city})</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted);">${s.desc}</p>
-                </div>
-            `).join('');
-        } catch (e) {
-            showsContainer.innerHTML = '<p style="color:var(--text-muted);">Haz clic en un evento del itinerario para consultar a Gemini.</p>';
-        }
+        if (recomContainer && recomHTML !== '') recomContainer.innerHTML = recomHTML;
+        if (showsContainer && showsHTML !== '') showsContainer.innerHTML = showsHTML;
     }
 
-  function showModal(title, details, location, cost, dateStr) {
+    function showModal(title, details, location, cost, dateStr) {
+        currentModalEventTitle = title;
+        currentModalEventStart = dateStr;
+
         document.getElementById('modalTitle').innerText = title;
         
         let mapUrl = '#';
         let isShortLink = false;
-        let isRoute = false;
 
-        // Detectar el hotel asignado para el día de la actividad
         let evDate = parseDateStr(dateStr);
         let acc = accommodationsData.find(a => {
             let s = parseDateStr(a.start), e = parseDateStr(a.end);
@@ -753,13 +667,11 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
                 const normalized = cleanLoc.replace(/&rarr;/g, '->').replace(/➔/g, '->').replace(/→/g, '->').replace(/=>/g, '->');
 
                 if (normalized.includes('->')) {
-                    isRoute = true;
                     const parts = normalized.split('->');
                     const origin = encodeURIComponent(parts[0].trim() + ", Japan");
                     const destination = encodeURIComponent(parts[1].trim() + ", Japan");
                     mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
                 } else {
-                    // Si hay un hotel asignado para ese día, se fija como origen automático
                     const destination = encodeURIComponent(cleanLoc + ", Japan");
                     if (currentHotel) {
                         const origin = encodeURIComponent(currentHotel + ", Japan");
@@ -776,7 +688,7 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
             <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
             
             ${location ? `
-                <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
+                <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg-color); border-radius: 6px; font-size: 0.82rem;">
                     <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
                     <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
                         📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (currentHotel ? `Ver trayecto en tren desde ${currentHotel}` : 'Ver cómo llegar')}
@@ -797,11 +709,17 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
                     </button>
                 </div>
             </div>
+
+            <div style="margin-top:15px; text-align:right;">
+                <button onclick="deleteEvent(currentModalEventTitle, currentModalEventStart)" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    🗑️ Eliminar Evento
+                </button>
+            </div>
         `;
         
         document.getElementById('eventModal').style.display = 'flex';
     }
-    window.showModal = showModal;
+
     function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
     function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
@@ -833,8 +751,6 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
         renderHeaderDays();
         buildGrid(localEvents);
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw42uc-z--DVqLAYsNZDLKagdz6jFAlxuTiz3aAzluBkyDRDJqi62szpjUwNHL3gRQtew/exec";
-
         fetch(SCRIPT_URL, {
             method: "POST",
             body: JSON.stringify(newEv)
@@ -845,15 +761,92 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
         toggleLocationFields();
     }
 
+    async function saveAIToSheet(title, aiText) {
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'updateAI',
+                    title: title,
+                    aiDetails: aiText
+                })
+            });
+        } catch (err) {
+            console.warn('Error al sincronizar con Google Sheets:', err);
+        }
+    }
+
+    async function deleteEvent(title, start) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar "${title}"?`)) return;
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'delete',
+                    title: title,
+                    start: start
+                })
+            });
+
+            alert('Evento eliminado correctamente.');
+            closeModal('eventModal');
+            location.reload(); 
+        } catch (err) {
+            alert('Hubo un error al intentar eliminar el evento.');
+        }
+    }
+
+    async function addExpense(event) {
+        if (event) event.preventDefault();
+        
+        const date = document.getElementById('exp-date')?.value || new Date().toISOString().split('T')[0];
+        const concept = document.getElementById('exp-concept')?.value || '';
+        const montoJpy = parseFloat(document.getElementById('exp-jpy')?.value) || 0;
+        const montoUsd = (montoJpy / 155).toFixed(2); 
+        const pagadoPor = document.getElementById('exp-payer')?.value || 'Sebas';
+        const categoria = document.getElementById('exp-category')?.value || 'General';
+
+        const payload = {
+            sheet: "Gastos",
+            date: date,
+            concept: concept,
+            montoJpy: montoJpy,
+            montoUsd: montoUsd,
+            pagadoPor: pagadoPor,
+            categoria: categoria
+        };
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            alert('Gasto registrado con éxito.');
+            const form = document.getElementById('expense-form');
+            if (form) form.reset();
+        } catch (err) {
+            alert('Error al registrar el gasto.');
+        }
+    }
+
     async function initApp() {
         await loadAccommodationsFromSheet();
         await loadEventsFromSheet();
         autoDetectStartDate();
         renderHeaderDays();
         buildGrid(localEvents);
-        populateAutoRecommendations();
+        updateAIViews();
     }
 
+    document.addEventListener('DOMContentLoaded', updateAIViews);
     initApp();
 </script>
 </body>
