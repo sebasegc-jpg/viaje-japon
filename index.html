@@ -544,11 +544,23 @@ function getApiKeys() {
 }
 
 async function analyzeWithAI(title, details, location, dateStr, forceRefresh = false) {
+    const cacheKey = 'AI_CACHE_' + title.replace(/\s+/g, '_');
+    
+    // 1. Si no es un refresco forzado, buscamos en el almacenamiento guardado primero
+    if (!forceRefresh) {
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+            const parsed = JSON.parse(cachedData);
+            displayAIResult(title, details, location, dateStr, parsed.text);
+            return;
+        }
+    }
+
     const keys = getApiKeys();
     if (keys.length === 0) return;
 
     const aiContent = document.getElementById('aiContent');
-    aiContent.innerHTML = '⏳ Consultando al asistente de IA...';
+    if (aiContent) aiContent.innerHTML = '⏳ Consultando al asistente de IA...';
 
     const promptText = `Eres un guía experto en viajes a Japón. Analiza esta actividad:
     - Evento: ${title}
@@ -564,7 +576,6 @@ async function analyzeWithAI(title, details, location, dateStr, forceRefresh = f
     let success = false;
 
     for (let i = 0; i < keys.length; i++) {
-        // Probamos la clave actual según el índice
         const activeKey = keys[(currentKeyIndex + i) % keys.length];
         
         try {
@@ -576,39 +587,94 @@ async function analyzeWithAI(title, details, location, dateStr, forceRefresh = f
 
             const data = await response.json();
 
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
+            if (data.error) throw new Error(data.error.message);
 
             if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const resultText = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
-                aiContent.innerHTML = `
-                    <div style="line-height:1.4;">${resultText}</div>
-                    <div style="margin-top:10px; font-size:0.8em; text-align:right;">
-                        <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
-                    </div>`;
+                const rawText = data.candidates[0].content.parts[0].text;
+                
+                // 2. Guardamos la respuesta en el caché local
+                const cachePayload = {
+                    title: title,
+                    dateStr: dateStr,
+                    text: rawText,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
+
+                // 3. Renderizamos el resultado y actualizamos las pestañas
+                displayAIResult(title, details, location, dateStr, rawText);
+                updateAIViews();
+
                 success = true;
-                // Dejamos fija la clave que funcionó para la siguiente consulta
                 currentKeyIndex = (currentKeyIndex + i) % keys.length;
                 break; 
             }
         } catch (err) {
-            console.warn(`Clave ${i + 1} falló: ${err.message}. Probando siguiente en 1s...`);
-            // Espera 1 segundo antes de probar la siguiente clave para no saturar la API
+            console.warn(`Clave ${i + 1} falló. Probando siguiente...`);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
 
-    if (!success) {
+    if (!success && aiContent) {
         aiContent.innerHTML = `
             <span style="color:#b91c1c;">
                 ❌ Todas las claves configuradas agotaron su cuota por el momento.
-                <button onclick="localStorage.removeItem('GEMINI_API_KEYS'); alert('Claves borradas. Vuelve a hacer clic para ingresarlas.');" style="margin-left:5px; cursor:pointer;">
+                <button onclick="localStorage.removeItem('GEMINI_API_KEYS'); alert('Claves borradas.');" style="margin-left:5px; cursor:pointer;">
                     Reingresar Claves
                 </button>
             </span>`;
     }
 }
+
+// Función auxiliar para mostrar el resultado en el modal
+function displayAIResult(title, details, location, dateStr, rawText) {
+    const aiContent = document.getElementById('aiContent');
+    if (!aiContent) return;
+
+    const resultText = rawText.replace(/\n/g, '<br>');
+    aiContent.innerHTML = `
+        <div style="line-height:1.4;">${resultText}</div>
+        <div style="margin-top:10px; font-size:0.8em; text-align:right;">
+            <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
+        </div>`;
+}
+
+// Función para poblar la pestaña de Recomendaciones y Shows & Eventos
+function updateAIViews() {
+    const recomContainer = document.getElementById('recom-container');
+    const showsContainer = document.getElementById('shows-container');
+
+    let recomHTML = '';
+    let showsHTML = '';
+
+    // Recorremos todo lo guardado en el caché local
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('AI_CACHE_')) {
+            const data = JSON.parse(localStorage.getItem(key));
+            const formattedText = data.text.replace(/\n/g, '<br>');
+
+            const cardHTML = `
+                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <h4 style="margin:0 0 6px 0; color:#1f2937; font-size:1em;">📍 ${data.title} <small style="color:#6b7280;">(${data.dateStr})</small></h4>
+                    <div style="font-size:0.9em; color:#374151; line-height:1.4;">${formattedText}</div>
+                </div>`;
+
+            // Si contiene la etiqueta [TEMPORAL], se envía a la pestaña de Shows & Eventos
+            if (data.text.includes('[TEMPORAL]')) {
+                showsHTML += cardHTML;
+            } else {
+                recomHTML += cardHTML;
+            }
+        }
+    }
+
+    if (recomContainer && recomHTML !== '') recomContainer.innerHTML = recomHTML;
+    if (showsContainer && showsHTML !== '') showsContainer.innerHTML = showsHTML;
+}
+
+// Cargar las vistas guardadas al iniciar la app
+document.addEventListener('DOMContentLoaded', updateAIViews);
     async function populateAutoRecommendations() {
         const recomContainer = document.getElementById('recom-container');
         const showsContainer = document.getElementById('shows-container');
