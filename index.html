@@ -606,12 +606,20 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
         }
     }
 
-    function showModal(title, details, location, cost, dateStr) {
+  function showModal(title, details, location, cost, dateStr) {
         document.getElementById('modalTitle').innerText = title;
         
         let mapUrl = '#';
         let isShortLink = false;
         let isRoute = false;
+
+        // Detectar el hotel asignado para el día de la actividad
+        let evDate = parseDateStr(dateStr);
+        let acc = accommodationsData.find(a => {
+            let s = parseDateStr(a.start), e = parseDateStr(a.end);
+            return s && e && evDate && evDate >= s && evDate <= e;
+        });
+        let currentHotel = acc ? acc.name : "";
 
         if (location && location.trim() !== '') {
             const cleanLoc = location.replace(/^"|"$/g, '').trim();
@@ -629,8 +637,14 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
                     const destination = encodeURIComponent(parts[1].trim() + ", Japan");
                     mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
                 } else {
+                    // Si hay un hotel asignado para ese día, se fija como origen automático
                     const destination = encodeURIComponent(cleanLoc + ", Japan");
-                    mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+                    if (currentHotel) {
+                        const origin = encodeURIComponent(currentHotel + ", Japan");
+                        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+                    } else {
+                        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit`;
+                    }
                 }
             }
         }
@@ -643,7 +657,7 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
                 <div style="margin: 0.8rem 0; padding: 0.6rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem;">
                     <p style="margin-bottom: 0.3rem;"><b>🧭 Navegación en Google Maps:</b></p>
                     <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
-                        📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (isRoute ? 'Ver trayecto completo en tren (Origen ➔ Destino)' : 'Ver cómo llegar')}
+                        📍 ${isShortLink ? 'Abrir ubicación exacta guardada' : (currentHotel ? `Ver trayecto en tren desde ${currentHotel}` : 'Ver cómo llegar')}
                     </a></p>
                 </div>
             ` : ''}
@@ -665,7 +679,7 @@ Responde ÚNICAMENTE en formato JSON válido con este esquema de lista:
         
         document.getElementById('eventModal').style.display = 'flex';
     }
-
+    window.showModal = showModal;
     function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
     function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
