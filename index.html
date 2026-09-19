@@ -1044,39 +1044,96 @@
         }
     }
 
+    // Carga de Recomendaciones desde Google Sheets con Acordeón Desplegable
     async function loadRecommendationsFromSheet() {
         const recomContainer = document.getElementById('recom-container');
         const showsContainer = document.getElementById('shows-container');
 
         try {
+            // Cargar datos de Recomendaciones
             const resRecom = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
             const recomData = await resRecom.json();
             
             if (recomContainer && recomData.length > 0) {
-                recomContainer.innerHTML = recomData.map(r => `
-                    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h4 style="margin:0 0 8px 0; color:#1f2937;">📍 ${r.Titulo || 'Recomendación'}</h4>
-                        <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>')}</div>
-                    </div>
-                `).join('');
+                recomContainer.innerHTML = recomData.map((r) => {
+                    const title = r.Titulo || r.title || 'Recomendación';
+                    const details = (r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>');
+                    
+                    return `
+                        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
+                            <details style="cursor:pointer;">
+                                <summary style="font-weight:bold; color:#1f2937; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>📍 ${title}</span>
+                                    <small style="color:var(--primary); font-size:0.8em;">(Clic para desplegar)</small>
+                                </summary>
+                                <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #f1f5f9; padding-top:10px;">
+                                    ${details}
+                                    <div style="text-align:right; margin-top:10px;">
+                                        <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', 'Recomendaciones')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
+                                            🗑️ Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>`;
+                }).join('');
             }
 
+            // Cargar datos de Shows
             const resShows = await fetch(`${SCRIPT_URL}?sheet=Shows`);
             const showsData = await resShows.json();
 
             if (showsContainer && showsData.length > 0) {
-                showsContainer.innerHTML = showsData.map(s => `
-                    <div style="background:#fff; border:1px solid #fbcfe8; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h4 style="margin:0 0 8px 0; color:#991b1b;">🎟️ ${s.Titulo || 'Evento'}</h4>
-                        <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(s.Detalles || s.aiDetails || '').replace(/\n/g, '<br>')}</div>
-                    </div>
-                `).join('');
+                showsContainer.innerHTML = showsData.map(s => {
+                    const title = s.Titulo || s.title || 'Evento / Show';
+                    const details = (s.Detalles || s.aiDetails || '').replace(/\n/g, '<br>');
+
+                    return `
+                        <div style="background:#fff; border:1px solid #fbcfe8; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
+                            <details style="cursor:pointer;">
+                                <summary style="font-weight:bold; color:#991b1b; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>🎟️ ${title}</span>
+                                    <small style="color:#be185d; font-size:0.8em;">(Clic para desplegar)</small>
+                                </summary>
+                                <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #fce7f3; padding-top:10px;">
+                                    ${details}
+                                    <div style="text-align:right; margin-top:10px;">
+                                        <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', 'Shows')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
+                                            🗑️ Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>`;
+                }).join('');
             }
         } catch (err) {
             console.warn('Cargando recomendaciones locales...');
         }
     }
 
+    // Función para borrar una recomendación individual de Google Sheets
+    async function deleteRecommendation(title, sheetName) {
+        if (!confirm(`¿Deseas eliminar "${title}" de la lista?`)) return;
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'delete',
+                    sheet: sheetName,
+                    title: title
+                })
+            });
+
+            alert('Eliminado correctamente.');
+            loadRecommendationsFromSheet();
+        } catch (err) {
+            alert('Error al intentar eliminar.');
+        }
+    }
     async function initApp() {
         await loadAccommodationsFromSheet();
         await loadEventsFromSheet();
