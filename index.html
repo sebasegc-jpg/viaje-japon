@@ -159,15 +159,29 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 3: RECOMENDACIONES -->
+      <!-- PESTAÑA 3: RECOMENDACIONES -->
         <section id="reels" class="tab-content">
-            <h3>Recomendaciones & Spots de Instagram/TikTok</h3>
+            <h3>Recomendaciones & Spots Personalizados</h3>
+            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Busca spots de Instagram/TikTok, locales temáticos o lugares específicos:</p>
+            
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem; max-width: 600px;">
+                <input type="text" id="custom-recom-input" placeholder="Ej: Café temático de Cowboy Bebop, tiendas de vinilos en Akihabara..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+                <button onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
+            </div>
+
             <div class="recom-grid" id="recom-container"></div>
         </section>
 
         <!-- PESTAÑA 4: SHOWS -->
         <section id="shows" class="tab-content">
-            <h3>Cartelera de Shows & Conciertos</h3>
+            <h3>Cartelera de Shows, Festivales & Conciertos</h3>
+            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Consulta disponibilidad de bandas, artistas o pop-up stores para tus fechas:</p>
+            
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem; max-width: 600px;">
+                <input type="text" id="custom-shows-input" placeholder="Ej: Concierto de The Seatbelts, presentación de ALI, Anime Song Festival..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+                <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️ Buscar Eventos</button>
+            </div>
+
             <div class="recom-grid" id="shows-container"></div>
         </section>
 
