@@ -7,6 +7,9 @@
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet Maps CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
         :root {
@@ -72,11 +75,16 @@
         .event-show { background-color: var(--accent-show); color: #be185d; }
 
         /* Contenedor del Mapa */
-        .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; }
-        .map-container iframe { width: 100%; height: 100%; border: 0; }
+        .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; position: relative; z-index: 1; }
+        #leaflet-map { width: 100%; height: 100%; }
 
         /* Grid Recomendaciones */
         .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+
+        /* Filtros por Zona */
+        .zone-filters { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .filter-btn { background: #f1f5f9; border: 1px solid var(--border); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-dark); }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 200; }
@@ -150,12 +158,23 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 2: TRANSPORTE Y MAPA -->
+        <!-- PESTAÑA 2: TRANSPORTE Y MAPA INTERACTIVO -->
         <section id="transporte" class="tab-content">
-            <h3>Mapa de Rutas y Objetivos Confirmados</h3>
-            <p style="color: var(--text-muted); margin-top: 0.5rem;">Visualiza los marcadores guardados en Google My Maps para coordinar traslados.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <h3>Mapa Interactivo de Rutas y Alojamientos</h3>
+                    <p style="color: var(--text-muted); margin-top: 0.2rem; font-size:0.85rem;">Marcadores cargados en tiempo real desde tu planilla. Clic en los puntos para abrir navegación.</p>
+                </div>
+                <div class="zone-filters" style="margin-bottom:0;">
+                    <button class="filter-btn" onclick="zoomMapTo('tokyo')">📍 Tokio</button>
+                    <button class="filter-btn" onclick="zoomMapTo('kyoto')">📍 Kioto</button>
+                    <button class="filter-btn" onclick="zoomMapTo('osaka')">📍 Osaka</button>
+                    <button class="filter-btn" onclick="zoomMapTo('all')">🗺️ Ver Todo Japón</button>
+                </div>
+            </div>
+            
             <div class="map-container">
-                <iframe src="https://www.google.com/maps/d/embed?mid=1kXNuTtK9xNF0h1ViVjEfLD9scbzoLQU"></iframe>
+                <div id="leaflet-map"></div>
             </div>
         </section>
 
@@ -164,9 +183,18 @@
             <h3>Recomendaciones & Spots Personalizados</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Busca spots de Instagram/TikTok, locales temáticos o lugares específicos:</p>
             
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem; max-width: 600px;">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-recom-input" placeholder="Ej: Café temático de Cowboy Bebop, tiendas de vinilos en Akihabara..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
                 <button onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
+            </div>
+
+            <!-- Filtros por Zona -->
+            <div class="zone-filters">
+                <span style="font-size:0.8rem; font-weight:600; align-self:center;">Filtrar Zona:</span>
+                <button class="filter-btn active" onclick="filterByZone('all', 'recom')">Todas</button>
+                <button class="filter-btn" onclick="filterByZone('tokio', 'recom')">Tokio</button>
+                <button class="filter-btn" onclick="filterByZone('kioto', 'recom')">Kioto</button>
+                <button class="filter-btn" onclick="filterByZone('osaka', 'recom')">Osaka</button>
             </div>
 
             <div class="recom-grid" id="recom-container"></div>
@@ -177,9 +205,18 @@
             <h3>Cartelera de Shows, Festivales & Conciertos</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Consulta disponibilidad de bandas, artistas o pop-up stores para tus fechas:</p>
             
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.2rem; max-width: 600px;">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-shows-input" placeholder="Ej: Concierto de The Seatbelts, presentación de ALI, Anime Song Festival..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
                 <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️ Buscar Eventos</button>
+            </div>
+
+            <!-- Filtros por Zona -->
+            <div class="zone-filters">
+                <span style="font-size:0.8rem; font-weight:600; align-self:center;">Filtrar Zona:</span>
+                <button class="filter-btn active" onclick="filterByZone('all', 'shows')">Todas</button>
+                <button class="filter-btn" onclick="filterByZone('tokio', 'shows')">Tokio</button>
+                <button class="filter-btn" onclick="filterByZone('kioto', 'shows')">Kioto</button>
+                <button class="filter-btn" onclick="filterByZone('osaka', 'shows')">Osaka</button>
             </div>
 
             <div class="recom-grid" id="shows-container"></div>
@@ -345,6 +382,9 @@
         </div>
     </div>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpzehPnmQF6Uoi_AGncV5LFCqKx4G1Kj8Pm1xhK6_E1DKRhlyr4bzH7HXkxMNvhmeCBg/exec";
     const JPY_USD_RATE = 155; // Tasa promedio (1 USD ~ 155 JPY)
@@ -358,6 +398,12 @@
     let currentModalEventTitle = "";
     let currentModalEventStart = "";
 
+    // Variables de Recomendaciones y Mapa
+    let rawRecomData = [];
+    let rawShowsData = [];
+    let leafletMap = null;
+    let mapMarkers = [];
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -367,6 +413,12 @@
         if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
         if (tabId === 'gastos') loadExpensesFromSheet();
+        if (tabId === 'transporte') {
+            setTimeout(() => {
+                if (leafletMap) leafletMap.invalidateSize();
+                else initLeafletMap();
+            }, 200);
+        }
     }
 
     function setWeek(weekNum) {
@@ -1014,12 +1066,7 @@
         document.getElementById(loadingCardId)?.remove();
 
         if (resultText) {
-            const newCard = `
-                <div style="background:#fff; border:1px solid ${isShow ? '#fbcfe8' : '#bfdbfe'}; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-                    <h4 style="margin:0 0 8px 0; color:${isShow ? '#991b1b' : '#1e40af'};">🎯 Búsqueda: ${userQuery}</h4>
-                    <div style="font-size:0.9em; color:#374151; line-height:1.5;">${resultText}</div>
-                </div>`;
-            container.innerHTML = newCard + container.innerHTML;
+            loadRecommendationsFromSheet();
             inputEl.value = '';
         } else {
             alert("No se pudo obtener respuesta. Revisa que tus claves de Gemini sean válidas.");
@@ -1044,75 +1091,83 @@
         }
     }
 
-    // Carga de Recomendaciones desde Google Sheets con Acordeón Desplegable
+    // --- RECOMENDACIONES CON DESPLEGABLES Y FILTRO DE ZONA ---
     async function loadRecommendationsFromSheet() {
-        const recomContainer = document.getElementById('recom-container');
-        const showsContainer = document.getElementById('shows-container');
-
         try {
-            // Cargar datos de Recomendaciones
             const resRecom = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
-            const recomData = await resRecom.json();
-            
-            if (recomContainer && recomData.length > 0) {
-                recomContainer.innerHTML = recomData.map((r, idx) => {
-                    const title = r.Titulo || r.title || 'Recomendación';
-                    const details = (r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>');
-                    
-                    return `
-                        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-                            <details style="cursor:pointer;">
-                                <summary style="font-weight:bold; color:#1f2937; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
-                                    <span>📍 ${title}</span>
-                                    <small style="color:var(--primary); font-size:0.8em;">(Clic para desplegar)</small>
-                                </summary>
-                                <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #f1f5f9; padding-top:10px;">
-                                    ${details}
-                                    <div style="text-align:right; margin-top:10px;">
-                                        <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', 'Recomendaciones')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
-                                            🗑️ Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>`;
-                }).join('');
-            }
+            rawRecomData = await resRecom.json();
+            renderFilteredRecommendations(rawRecomData, 'recom-container', 'recom', 'all');
 
-            // Cargar datos de Shows
             const resShows = await fetch(`${SCRIPT_URL}?sheet=Shows`);
-            const showsData = await resShows.json();
-
-            if (showsContainer && showsData.length > 0) {
-                showsContainer.innerHTML = showsData.map(s => {
-                    const title = s.Titulo || s.title || 'Evento / Show';
-                    const details = (s.Detalles || s.aiDetails || '').replace(/\n/g, '<br>');
-
-                    return `
-                        <div style="background:#fff; border:1px solid #fbcfe8; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-                            <details style="cursor:pointer;">
-                                <summary style="font-weight:bold; color:#991b1b; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
-                                    <span>🎟️ ${title}</span>
-                                    <small style="color:#be185d; font-size:0.8em;">(Clic para desplegar)</small>
-                                </summary>
-                                <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #fce7f3; padding-top:10px;">
-                                    ${details}
-                                    <div style="text-align:right; margin-top:10px;">
-                                        <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', 'Shows')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
-                                            🗑️ Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>`;
-                }).join('');
-            }
+            rawShowsData = await resShows.json();
+            renderFilteredRecommendations(rawShowsData, 'shows-container', 'shows', 'all');
         } catch (err) {
             console.warn('Cargando recomendaciones locales...');
         }
     }
 
-    // Función para borrar una recomendación individual de Google Sheets
+    function renderFilteredRecommendations(dataArray, containerId, type, zone) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        let filtered = dataArray;
+        if (zone !== 'all') {
+            filtered = dataArray.filter(item => {
+                const text = ((item.Titulo || '') + ' ' + (item.Detalles || '') + ' ' + (item.aiDetails || '')).toLowerCase();
+                return text.includes(zone.toLowerCase());
+            });
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div style="grid-column:1/-1; color:var(--text-muted); font-size:0.9rem; padding:1rem; text-align:center;">No hay recomendaciones guardadas para esta zona.</div>`;
+            return;
+        }
+
+        const isShow = (type === 'shows');
+        container.innerHTML = filtered.map((r) => {
+            const title = r.Titulo || r.title || 'Recomendación';
+            const details = (r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>');
+            const borderColor = isShow ? '#fbcfe8' : '#e5e7eb';
+            const titleColor = isShow ? '#991b1b' : '#1f2937';
+            const icon = isShow ? '🎟️' : '📍';
+            const sheetName = isShow ? 'Shows' : 'Recomendaciones';
+
+            return `
+                <div style="background:#fff; border:1px solid ${borderColor}; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
+                    <details style="cursor:pointer;">
+                        <summary style="font-weight:bold; color:${titleColor}; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
+                            <span>${icon} ${title}</span>
+                            <small style="color:var(--primary); font-size:0.8em;">(Clic para desplegar)</small>
+                        </summary>
+                        <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #f1f5f9; padding-top:10px;">
+                            ${details}
+                            <div style="text-align:right; margin-top:10px;">
+                                <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', '${sheetName}')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                </div>`;
+        }).join('');
+    }
+
+    function filterByZone(zone, type) {
+        const isShow = (type === 'shows');
+        const containerId = isShow ? 'shows-container' : 'recom-container';
+        const dataArray = isShow ? rawShowsData : rawRecomData;
+
+        // Actualizar UI de botones activos
+        const parent = document.getElementById(containerId).previousElementSibling;
+        if (parent && parent.classList.contains('zone-filters')) {
+            parent.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase().includes(zone) || (zone === 'all' && btn.innerText.includes('Todas')));
+            });
+        }
+
+        renderFilteredRecommendations(dataArray, containerId, type, zone);
+    }
+
     async function deleteRecommendation(title, sheetName) {
         if (!confirm(`¿Deseas eliminar "${title}" de la lista?`)) return;
 
@@ -1134,6 +1189,82 @@
             alert('Error al intentar eliminar.');
         }
     }
+
+    // --- MAPA INTERACTIVO NATIVO CON LEAFLET.JS ---
+    const CITY_COORDS = {
+        tokyo: [35.6762, 139.6503],
+        kyoto: [35.0116, 135.7681],
+        osaka: [34.6937, 135.5023],
+        all: [35.2, 137.5]
+    };
+
+    const KNOWN_PLACES_COORDS = {
+        'hotel graphy shibuya': [35.6558, 139.7040],
+        'tokio': [35.6762, 139.6503],
+        'fujitaya kyoto': [34.9922, 135.7485],
+        'kioto': [35.0116, 135.7681],
+        'osaka': [34.6937, 135.5023],
+        'gion': [35.0037, 135.7772],
+        'akihabara': [35.6983, 139.7731]
+    };
+
+    function initLeafletMap() {
+        if (leafletMap) return;
+
+        leafletMap = L.map('leaflet-map').setView(CITY_COORDS.all, 7);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(leafletMap);
+
+        renderMapMarkers();
+    }
+
+    function renderMapMarkers() {
+        if (!leafletMap) return;
+
+        // Limpiar marcadores viejos
+        mapMarkers.forEach(m => leafletMap.removeLayer(m));
+        mapMarkers = [];
+
+        // Agregar Alojamientos
+        accommodationsData.forEach(acc => {
+            const cleanName = acc.name.toLowerCase().trim();
+            let coords = KNOWN_PLACES_COORDS[cleanName];
+
+            if (!coords) {
+                if (cleanName.includes('tokio') || cleanName.includes('tokyo') || cleanName.includes('shibuya')) coords = CITY_COORDS.tokyo;
+                else if (cleanName.includes('kyoto') || cleanName.includes('kioto')) coords = CITY_COORDS.kyoto;
+                else if (cleanName.includes('osaka')) coords = CITY_COORDS.osaka;
+            }
+
+            if (coords) {
+                const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.name + ', Japan')}`;
+                const marker = L.marker(coords).addTo(leafletMap);
+                
+                marker.bindPopup(`
+                    <div style="font-family:Inter, sans-serif;">
+                        <h4 style="margin:0 0 4px 0; color:#1e40af;">🏨 ${acc.name}</h4>
+                        <p style="font-size:0.8rem; color:#475569; margin-bottom:8px;">Alojamiento Confirmado</p>
+                        <a href="${mapSearchUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#bc002d; color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:0.75rem; font-weight:bold;">
+                            🧭 Abrir en Google Maps
+                        </a>
+                    </div>
+                `);
+                mapMarkers.push(marker);
+            }
+        });
+    }
+
+    function zoomMapTo(cityKey) {
+        if (!leafletMap) initLeafletMap();
+        const coords = CITY_COORDS[cityKey] || CITY_COORDS.all;
+        const zoom = (cityKey === 'all') ? 7 : 12;
+        leafletMap.setView(coords, zoom);
+    }
+
+    // --- INICIALIZACIÓN GENERAL ---
     async function initApp() {
         await loadAccommodationsFromSheet();
         await loadEventsFromSheet();
