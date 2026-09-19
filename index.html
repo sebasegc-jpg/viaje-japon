@@ -1055,7 +1055,7 @@
             const recomData = await resRecom.json();
             
             if (recomContainer && recomData.length > 0) {
-                recomContainer.innerHTML = recomData.map((r) => {
+                recomContainer.innerHTML = recomData.map((r, idx) => {
                     const title = r.Titulo || r.title || 'Recomendación';
                     const details = (r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>');
                     
