@@ -7,6 +7,9 @@
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet Maps CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
         :root {
@@ -73,6 +76,7 @@
 
         /* Contenedor del Mapa */
         .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; position: relative; z-index: 1; }
+        #leaflet-map { width: 100%; height: 100%; }
         
         /* Grid Recomendaciones */
         .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
@@ -154,30 +158,25 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 2: TRANSPORTE Y MAPA EN ESPAÑOL -->
+        <!-- PESTAÑA 2: TRANSPORTE Y MAPA INTERACTIVO CON PINES -->
         <section id="transporte" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom:0.8rem;">
                 <div>
-                    <h3>Mapa de Rutas y Ubicaciones</h3>
-                    <p style="color: var(--text-muted); font-size:0.85rem;">Explora los destinos clave de tu itinerario directamente en Google Maps.</p>
+                    <h3>Mapa Interactivo de Rutas y Alojamientos</h3>
+                    <p style="color: var(--text-muted); font-size:0.85rem;">Puntos clave cargados automáticamente en español. Clic en los puntos para abrir en Google Maps.</p>
                 </div>
                 <div class="zone-filters" style="margin-bottom:0;">
-                    <button class="filter-btn" onclick="changeMapFocus('Hokkaido')">🏂 Norte / Snowboard</button>
-                    <button class="filter-btn" onclick="changeMapFocus('Okinawa')">🏖️ Sur / Okinawa</button>
-                    <button class="filter-btn" onclick="changeMapFocus('Tokio')">📍 Tokio</button>
-                    <button class="filter-btn" onclick="changeMapFocus('Kioto')">📍 Kioto</button>
-                    <button class="filter-btn" onclick="changeMapFocus('Osaka')">📍 Osaka</button>
-                    <button class="filter-btn active" onclick="changeMapFocus('Japon')">🗺️ Ver Todo</button>
+                    <button class="filter-btn" onclick="zoomMapTo('hokkaido')">🏂 Norte / Snowboard</button>
+                    <button class="filter-btn" onclick="zoomMapTo('okinawa')">🏖️ Sur / Okinawa</button>
+                    <button class="filter-btn" onclick="zoomMapTo('tokyo')">📍 Tokio</button>
+                    <button class="filter-btn" onclick="zoomMapTo('kyoto')">📍 Kioto</button>
+                    <button class="filter-btn" onclick="zoomMapTo('osaka')">📍 Osaka</button>
+                    <button class="filter-btn active" onclick="zoomMapTo('all')">🗺️ Ver Todo</button>
                 </div>
             </div>
             
             <div class="map-container">
-                <iframe id="google-maps-frame" 
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3280000!2d137.5!3d35.2!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x34674e0fd77f192f%3A0xf54275d47c665244!2sJap%C3%B3n!5e0!3m2!1ses!2sar!4v1700000000000" 
-                        style="width:100%; height:100%; border:0;" 
-                        allowfullscreen="" 
-                        loading="lazy">
-                </iframe>
+                <div id="leaflet-map"></div>
             </div>
         </section>
 
@@ -389,6 +388,9 @@
         </div>
     </div>
 
+    <!-- Leaflet JS para el Mapa Interactivo -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpzehPnmQF6Uoi_AGncV5LFCqKx4G1Kj8Pm1xhK6_E1DKRhlyr4bzH7HXkxMNvhmeCBg/exec";
     const JPY_USD_RATE = 155; // Tasa promedio (1 USD ~ 155 JPY)
@@ -405,6 +407,29 @@
     let rawRecomData = [];
     let rawShowsData = [];
 
+    // Variables del Mapa Leaflet
+    let leafletMap = null;
+    let mapMarkers = [];
+
+    const CITY_COORDS = {
+        tokyo: [35.6762, 139.6503],
+        kyoto: [35.0116, 135.7681],
+        osaka: [34.6937, 135.5023],
+        hokkaido: [43.0621, 141.3544],
+        okinawa: [26.2124, 127.6809],
+        all: [35.2, 137.5]
+    };
+
+    const KNOWN_PLACES_COORDS = {
+        'hotel graphy shibuya': [35.6558, 139.7040],
+        'fujitaya kyoto': [34.9922, 135.7485],
+        'tokio': [35.6762, 139.6503],
+        'kioto': [35.0116, 135.7681],
+        'osaka': [34.6937, 135.5023],
+        'gion': [35.0037, 135.7772],
+        'akihabara': [35.6983, 139.7731]
+    };
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -414,6 +439,12 @@
         if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
         if (tabId === 'gastos') loadExpensesFromSheet();
+        if (tabId === 'transporte') {
+            setTimeout(() => {
+                if (leafletMap) leafletMap.invalidateSize();
+                else initLeafletMap();
+            }, 200);
+        }
     }
 
     function setWeek(weekNum) {
@@ -556,7 +587,7 @@
             if (acc) {
                 const safeName = acc.name.replace(/'/g, "\\'");
                 const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
-                stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '')">🏨 ${acc.name}</div>`;
+                stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '', '${formatDateToISO(d)}')">🏨 ${acc.name}</div>`;
             }
 
             html += `<th><div class="day-header"><div class="day-date">${formattedDate}</div>${stayHTML}</div></th>`;
@@ -711,7 +742,7 @@
             </div>`;
     }
 
-    // --- CÁLCULO DE RUTAS AUTOMÁTICAS DESDE EL HOTEL DEL DÍA ---
+    // --- CÁLCULO DE RUTAS AUTOMÁTICAS DESDE EL HOTEL DEL DÍA (CORREGIDO PARA LINKS CORTOS Y PARQUE NARA) ---
     function showModal(title, details, location, cost, dateStr) {
         currentModalEventTitle = title;
         currentModalEventStart = dateStr;
@@ -719,7 +750,6 @@
         document.getElementById('modalTitle').innerText = title;
         
         let mapUrl = '#';
-        let targetDestination = (location && location.trim() !== '') ? location : title;
 
         // Detectar automáticamente el hotel asignado para el día de esta actividad
         let evDate = parseDateStr(dateStr);
@@ -730,39 +760,31 @@
         
         let currentHotel = acc ? acc.name : "";
 
-        if (targetDestination && targetDestination.trim() !== '') {
-            const cleanLoc = targetDestination.replace(/^"|"$/g, '').trim();
+        // Si pega un link o URL corta, se toma el Título como Destino para forzar el cálculo de ruta en tren
+        let cleanLoc = (location || '').replace(/^"|"$/g, '').trim();
+        let destinationQuery = title;
 
-            if (cleanLoc.includes('maps.app.goo.gl') || cleanLoc.includes('goo.gl')) {
-                mapUrl = cleanLoc;
-            } else {
-                const normalized = cleanLoc.replace(/&rarr;/g, '->').replace(/➔/g, '->').replace(/→/g, '->').replace(/=>/g, '->');
+        if (cleanLoc !== '' && !cleanLoc.includes('maps.app.goo.gl') && !cleanLoc.includes('goo.gl') && !cleanLoc.includes('http')) {
+            destinationQuery = cleanLoc;
+        }
 
-                if (normalized.includes('->')) {
-                    const parts = normalized.split('->');
-                    const origin = encodeURIComponent(parts[0].trim() + ", Japan");
-                    const destination = encodeURIComponent(parts[1].trim() + ", Japan");
-                    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit&hl=es`;
-                } else {
-                    const destination = encodeURIComponent(cleanLoc + ", Japan");
-                    if (currentHotel) {
-                        const origin = encodeURIComponent(currentHotel + ", Japan");
-                        mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit&hl=es`;
-                    } else {
-                        mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit&hl=es`;
-                    }
-                }
-            }
+        const destination = encodeURIComponent(destinationQuery + ", Japan");
+
+        if (currentHotel) {
+            const origin = encodeURIComponent(currentHotel + ", Japan");
+            mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit&hl=es`;
+        } else {
+            mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit&hl=es`;
         }
 
         document.getElementById('modalBody').innerHTML = `
-            <p><b>Ubicación / Lugar:</b> ${location || 'No especificada'}</p>
+            <p><b>Ubicación / Lugar:</b> ${cleanLoc || title}</p>
             <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
             
             <div style="margin: 0.8rem 0; padding: 0.8rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 0.85rem;">
                 <p style="margin-bottom: 0.3rem; font-weight:bold; color:#1e40af;">🧭 Recorrido en Transporte Público (Tren / Subte):</p>
                 <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:#1d4ed8; font-weight:bold; text-decoration:underline;">
-                    📍 ${currentHotel ? `Ver trayecto desde ${currentHotel} hasta${targetDestination}` : `Ver cómo llegar a ${targetDestination}`}
+                    📍 ${currentHotel ? `Ver trayecto en tren desde ${currentHotel} hasta${title}` : `Ver cómo llegar a ${title}`}
                 </a></p>
             </div>
 
@@ -773,9 +795,9 @@
             <div style="margin-top: 1rem; padding: 0.8rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                 <p style="font-weight: bold; color: #166534; margin-bottom: 0.4rem;">🤖 Asistente Gemini IA:</p>
                 <div id="aiContent" style="font-size: 0.85rem; color: #15803d;">
-                    <button onclick="analyzeWithAI('${title.replace(/'/g, "\\'")}', '${details.replace(/'/g, "\\'")}', '${(location||'').replace(/'/g, "\\'")}', '${dateStr}')" 
+                    <button onclick="analyzeWithAI('${title.replace(/'/g, "\\'")}', '${details.replace(/'/g, "\\'")}', '${cleanLoc.replace(/'/g, "\\'")}', '${dateStr}')" 
                             style="background: #166534; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">
-                        🔍 Calcular traslados desde mi hotel y buscar referencias de Anime
+                        🔍 Calcular traslados desde mi hotel y buscar referencias
                     </button>
                 </div>
             </div>
@@ -1185,25 +1207,67 @@
         }
     }
 
-    // --- ENFOQUE DINÁMICO DEL MAPA ---
-    function changeMapFocus(region) {
-        const frame = document.getElementById('google-maps-frame');
-        if (!frame) return;
+    // --- MAPA INTERACTIVO (LEAFLET.JS) Y RENDERIZADO DE PINES ---
+    function initLeafletMap() {
+        if (leafletMap) return;
 
-        let query = "Japon";
-        if (region === 'Tokio') query = "Tokio, Japan";
-        if (region === 'Kioto') query = "Kioto, Japan";
-        if (region === 'Osaka') query = "Osaka, Japan";
-        if (region === 'Hokkaido') query = "Hokkaido, Japan";
-        if (region === 'Okinawa') query = "Okinawa, Japan";
+        leafletMap = L.map('leaflet-map').setView(CITY_COORDS.all, 7);
 
-        frame.src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed&hl=es`;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(leafletMap);
+
+        renderMapMarkers();
+    }
+
+    function renderMapMarkers() {
+        if (!leafletMap) return;
+
+        mapMarkers.forEach(m => leafletMap.removeLayer(m));
+        mapMarkers = [];
+
+        accommodationsData.forEach(acc => {
+            const cleanName = acc.name.toLowerCase().trim();
+            let coords = KNOWN_PLACES_COORDS[cleanName];
+
+            if (!coords) {
+                if (cleanName.includes('tokio') || cleanName.includes('tokyo') || cleanName.includes('shibuya')) coords = CITY_COORDS.tokyo;
+                else if (cleanName.includes('kyoto') || cleanName.includes('kioto')) coords = CITY_COORDS.kyoto;
+                else if (cleanName.includes('osaka')) coords = CITY_COORDS.osaka;
+                else if (cleanName.includes('hokkaido')) coords = CITY_COORDS.hokkaido;
+                else if (cleanName.includes('okinawa')) coords = CITY_COORDS.okinawa;
+            }
+
+            if (coords) {
+                const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.name + ', Japan')}`;
+                const marker = L.marker(coords).addTo(leafletMap);
+                
+                marker.bindPopup(`
+                    <div style="font-family:Inter, sans-serif;">
+                        <h4 style="margin:0 0 4px 0; color:#1e40af;">🏨 ${acc.name}</h4>
+                        <p style="font-size:0.8rem; color:#475569; margin-bottom:8px;">Alojamiento Confirmado</p>
+                        <a href="${mapSearchUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#bc002d; color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:0.75rem; font-weight:bold;">
+                            🧭 Abrir en Google Maps
+                        </a>
+                    </div>
+                `);
+                mapMarkers.push(marker);
+            }
+        });
+    }
+
+    function zoomMapTo(cityKey) {
+        if (!leafletMap) initLeafletMap();
+        const coords = CITY_COORDS[cityKey] || CITY_COORDS.all;
+        const zoom = (cityKey === 'all') ? 7 : 12;
+        leafletMap.setView(coords, zoom);
 
         const sectionEl = document.getElementById('transporte');
         if (sectionEl) {
             sectionEl.querySelectorAll('.filter-btn').forEach(btn => {
                 const btnText = btn.innerText.toLowerCase();
-                btn.classList.toggle('active', btnText.includes(region.toLowerCase()) || (region === 'Japon' && btnText.includes('todo')));
+                btn.classList.toggle('active', btnText.includes(cityKey.toLowerCase()) || (cityKey === 'all' && btnText.includes('todo')));
             });
         }
     }
