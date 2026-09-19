@@ -141,7 +141,7 @@
                 <table class="schedule-table">
                     <thead>
                         <tr id="table-header-days">
-                            <!-- Se genera dinámicamente con Fechas de Lunes a Domingo -->
+                            <!-- Se genera dinámicamente -->
                         </tr>
                     </thead>
                     <tbody id="grid-body">
@@ -159,7 +159,7 @@
             </div>
         </section>
 
-      <!-- PESTAÑA 3: RECOMENDACIONES -->
+        <!-- PESTAÑA 3: RECOMENDACIONES -->
         <section id="reels" class="tab-content">
             <h3>Recomendaciones & Spots Personalizados</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Busca spots de Instagram/TikTok, locales temáticos o lugares específicos:</p>
@@ -185,42 +185,83 @@
             <div class="recom-grid" id="shows-container"></div>
         </section>
 
-        <!-- PESTAÑA 5: GASTOS -->
+        <!-- PESTAÑA 5: GASTOS (DINÁMICA & MULTI-MONEDA) -->
         <section id="gastos" class="tab-content">
-            <h3>Control de Gastos & Presupuesto</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">Registra compras o pagos realizados en el viaje.</p>
-            <form id="expense-form" onsubmit="addExpense(event)" style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); max-width:450px;">
-                <div class="form-group">
-                    <label>Fecha:</label>
-                    <input type="date" id="exp-date" required>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <h3>Control de Gastos & Presupuesto</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Registra compras o pagos realizados en el viaje.</p>
                 </div>
-                <div class="form-group">
-                    <label>Concepto / Detalle:</label>
-                    <input type="text" id="exp-concept" required placeholder="Ej: Entradas Universal Studios">
+                <button onclick="resetTravelers()" style="background:#f1f5f9; border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600;">
+                    👤 Configurar Nombres de Viajeros
+                </button>
+            </div>
+
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <!-- Formulario -->
+                <form id="expense-form" onsubmit="addExpense(event)" style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); flex:1; min-width:300px;">
+                    <div class="form-group">
+                        <label>Fecha:</label>
+                        <input type="date" id="exp-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Concepto / Detalle:</label>
+                        <input type="text" id="exp-concept" required placeholder="Ej: Entradas Shinkansen / Hotel">
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Moneda:</label>
+                            <select id="exp-currency">
+                                <option value="JPY">Yenes (¥ JPY)</option>
+                                <option value="USD">Dólares ($ USD)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1.5;">
+                            <label>Monto Ingresado:</label>
+                            <input type="number" step="0.01" id="exp-amount" required placeholder="Ej: 39846">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pagado por:</label>
+                        <select id="exp-payer">
+                            <!-- Se carga dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría:</label>
+                        <select id="exp-category">
+                            <option value="Transporte">Transporte / Trenes</option>
+                            <option value="Comida">Comida / Bebida</option>
+                            <option value="Alojamiento">Alojamiento</option>
+                            <option value="Entradas">Entradas / Tours</option>
+                            <option value="Compras">Compras / Souvenirs</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-add-event" style="width:100%; justify-content:center;">➕ Registrar Gasto</button>
+                </form>
+
+                <!-- Balance -->
+                <div style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); width:320px; height:fit-content;">
+                    <h4 style="margin-bottom:0.8rem; color:var(--text-dark);">⚖️ Balance de Gastos</h4>
+                    
+                    <div style="margin-bottom:1rem; padding:0.8rem; background:#f0fdf4; border-radius:6px;">
+                        <p id="lbl-p1" style="font-size:0.85rem; color:#166534; font-weight:bold;">Total Viajero 1:</p>
+                        <h3 id="total-p1-usd">$0.00 USD</h3>
+                    </div>
+
+                    <div style="margin-bottom:1rem; padding:0.8rem; background:#fef3c7; border-radius:6px;">
+                        <p id="lbl-p2" style="font-size:0.85rem; color:#92400e; font-weight:bold;">Total Viajero 2:</p>
+                        <h3 id="total-p2-usd">$0.00 USD</h3>
+                    </div>
+
+                    <div style="padding:0.8rem; background:#f1f5f9; border-radius:6px;">
+                        <p style="font-size:0.85rem; color:var(--text-muted); font-weight:bold;">Total General del Viaje:</p>
+                        <h3 id="total-trip-usd">$0.00 USD</h3>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Monto en Yenes (JPY ¥):</label>
-                    <input type="number" id="exp-jpy" required placeholder="Ej: 8500">
-                </div>
-                <div class="form-group">
-                    <label>Pagado por:</label>
-                    <select id="exp-payer">
-                        <option value="Sebas">Sebas</option>
-                        <option value="Hilsa">Hilsa</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Categoría:</label>
-                    <select id="exp-category">
-                        <option value="Comida">Comida / Bebida</option>
-                        <option value="Transporte">Transporte / Trenes</option>
-                        <option value="Alojamiento">Alojamiento</option>
-                        <option value="Entradas">Entradas / Tours</option>
-                        <option value="Compras">Compras / Souvenirs</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-add-event" style="width:100%; justify-center;">➕ Registrar Gasto</button>
-            </form>
+            </div>
         </section>
     </main>
 
@@ -275,7 +316,6 @@
                     </div>
                 </div>
 
-                <!-- Campos de Ubicación Dinámicos -->
                 <div class="form-group" id="single-location-group">
                     <label>Ubicación / Dirección</label>
                     <input type="text" id="ev-location" placeholder="Ej: Gion, Kioto">
@@ -307,6 +347,7 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpzehPnmQF6Uoi_AGncV5LFCqKx4G1Kj8Pm1xhK6_E1DKRhlyr4bzH7HXkxMNvhmeCBg/exec";
+    const JPY_USD_RATE = 155; // Tasa promedio (1 USD ~ 155 JPY)
 
     let START_DATE = null;
     let currentWeek = 1;
@@ -325,7 +366,7 @@
         if (target) target.classList.add('active');
         if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
-        if (tabId === 'reels' || tabId === 'shows') updateAIViews();
+        if (tabId === 'gastos') loadExpensesFromSheet();
     }
 
     function setWeek(weekNum) {
@@ -588,8 +629,7 @@
                     localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
 
                     displayAIResult(title, details, location, dateStr, rawText);
-                    updateAIViews();
-                    saveAIToSheet(title, rawText); // Sincroniza con Google Sheets
+                    saveAIToSheet(title, rawText);
 
                     success = true;
                     currentKeyIndex = (currentKeyIndex + i) % keys.length;
@@ -622,37 +662,6 @@
             <div style="margin-top:10px; font-size:0.8em; text-align:right;">
                 <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
             </div>`;
-    }
-
-    function updateAIViews() {
-        const recomContainer = document.getElementById('recom-container');
-        const showsContainer = document.getElementById('shows-container');
-
-        let recomHTML = '';
-        let showsHTML = '';
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('AI_CACHE_')) {
-                const data = JSON.parse(localStorage.getItem(key));
-                const formattedText = data.text.replace(/\n/g, '<br>');
-
-                const cardHTML = `
-                    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h4 style="margin:0 0 6px 0; color:#1f2937; font-size:1em;">📍 ${data.title} <small style="color:#6b7280;">(${data.dateStr || ''})</small></h4>
-                        <div style="font-size:0.9em; color:#374151; line-height:1.4;">${formattedText}</div>
-                    </div>`;
-
-                if (data.text.includes('[TEMPORAL]')) {
-                    showsHTML += cardHTML;
-                } else {
-                    recomHTML += cardHTML;
-                }
-            }
-        }
-
-        if (recomContainer && recomHTML !== '') recomContainer.innerHTML = recomHTML;
-        if (showsContainer && showsHTML !== '') showsContainer.innerHTML = showsHTML;
     }
 
     function showModal(title, details, location, cost, dateStr) {
@@ -815,15 +824,65 @@
         }
     }
 
+    // --- LÓGICA DE VIAJEROS Y GASTOS ---
+    function getTravelers() {
+        let traveler1 = localStorage.getItem('TRAVELER_1');
+        let traveler2 = localStorage.getItem('TRAVELER_2');
+
+        if (!traveler1 || !traveler2) {
+            traveler1 = prompt("Ingresa el nombre del primer viajero:", "Sebas") || "Sebas";
+            traveler2 = prompt("Ingresa el nombre del segundo viajero:", "Hilsa") || "Hilsa";
+            
+            localStorage.setItem('TRAVELER_1', traveler1.trim());
+            localStorage.setItem('TRAVELER_2', traveler2.trim());
+        }
+        return { p1: traveler1, p2: traveler2 };
+    }
+
+    function resetTravelers() {
+        localStorage.removeItem('TRAVELER_1');
+        localStorage.removeItem('TRAVELER_2');
+        setupTravelerUI();
+        loadExpensesFromSheet();
+    }
+
+    function setupTravelerUI() {
+        const { p1, p2 } = getTravelers();
+        
+        const payerSelect = document.getElementById('exp-payer');
+        if (payerSelect) {
+            payerSelect.innerHTML = `
+                <option value="${p1}">${p1}</option>
+                <option value="${p2}">${p2}</option>
+            `;
+        }
+
+        const lblP1 = document.getElementById('lbl-p1');
+        const lblP2 = document.getElementById('lbl-p2');
+        if (lblP1) lblP1.innerText = `Total ${p1}:`;
+        if (lblP2) lblP2.innerText = `Total ${p2}:`;
+    }
+
     async function addExpense(event) {
         if (event) event.preventDefault();
         
         const date = document.getElementById('exp-date')?.value || new Date().toISOString().split('T')[0];
         const concept = document.getElementById('exp-concept')?.value || '';
-        const montoJpy = parseFloat(document.getElementById('exp-jpy')?.value) || 0;
-        const montoUsd = (montoJpy / 155).toFixed(2); 
+        const currency = document.getElementById('exp-currency')?.value || 'JPY';
+        const rawAmount = parseFloat(document.getElementById('exp-amount')?.value) || 0;
         const pagadoPor = document.getElementById('exp-payer')?.value || 'Sebas';
         const categoria = document.getElementById('exp-category')?.value || 'General';
+
+        let montoJpy = 0;
+        let montoUsd = 0;
+
+        if (currency === 'JPY') {
+            montoJpy = rawAmount;
+            montoUsd = (rawAmount / JPY_USD_RATE).toFixed(2);
+        } else {
+            montoUsd = rawAmount.toFixed(2);
+            montoJpy = Math.round(rawAmount * JPY_USD_RATE);
+        }
 
         const payload = {
             sheet: "Gastos",
@@ -846,12 +905,46 @@
             alert('Gasto registrado con éxito.');
             const form = document.getElementById('expense-form');
             if (form) form.reset();
+            loadExpensesFromSheet();
         } catch (err) {
             alert('Error al registrar el gasto.');
         }
     }
 
-async function searchCustomAI(type) {
+    async function loadExpensesFromSheet() {
+        setupTravelerUI();
+        const { p1, p2 } = getTravelers();
+
+        try {
+            const res = await fetch(`${SCRIPT_URL}?sheet=Gastos`);
+            const data = await res.json();
+            
+            let p1USD = 0, p1JPY = 0;
+            let p2USD = 0, p2JPY = 0;
+
+            data.forEach(item => {
+                const usd = parseFloat(item.Monto_Dlr || item.montoUsd || 0);
+                const jpy = parseFloat(item.Monto_JPY || item.montoJpy || 0);
+                const payer = (item.PagadoPor || item.pagadoPor || '').trim().toLowerCase();
+
+                if (payer.includes(p1.toLowerCase())) {
+                    p1USD += usd;
+                    p1JPY += jpy;
+                } else if (payer.includes(p2.toLowerCase())) {
+                    p2USD += usd;
+                    p2JPY += jpy;
+                }
+            });
+
+            document.getElementById('total-p1-usd').innerHTML = `$${p1USD.toFixed(2)} USD <small style="font-size:0.75rem; color:#15803d;">(¥${p1JPY.toLocaleString()} JPY)</small>`;
+            document.getElementById('total-p2-usd').innerHTML = `$${p2USD.toFixed(2)} USD <small style="font-size:0.75rem; color:#b45309;">(¥${p2JPY.toLocaleString()} JPY)</small>`;
+            document.getElementById('total-trip-usd').innerHTML = `$${(p1USD + p2USD).toFixed(2)} USD`;
+        } catch (e) {
+            console.warn("Cargando datos de gastos...");
+        }
+    }
+
+    async function searchCustomAI(type) {
         const isShow = (type === 'shows');
         const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
         const containerId = isShow ? 'shows-container' : 'recom-container';
@@ -910,9 +1003,7 @@ async function searchCustomAI(type) {
                     resultText = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
                     currentKeyIndex = (currentKeyIndex + i) % keys.length;
                     
-                    if (typeof saveCustomRecommendationToSheet === 'function') {
-                        saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
-                    }
+                    saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
                     break;
                 }
             } catch (err) {
@@ -934,8 +1025,8 @@ async function searchCustomAI(type) {
             alert("No se pudo obtener respuesta. Revisa que tus claves de Gemini sean válidas.");
         }
     }
-    
-   async function saveCustomRecommendationToSheet(title, text, sheetName) {
+
+    async function saveCustomRecommendationToSheet(title, text, sheetName) {
         try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -953,56 +1044,39 @@ async function searchCustomAI(type) {
         }
     }
 
-   // Carga directa de la base de datos de Google Sheets
-async function loadRecommendationsFromSheet() {
-    const recomContainer = document.getElementById('recom-container');
-    const showsContainer = document.getElementById('shows-container');
+    async function loadRecommendationsFromSheet() {
+        const recomContainer = document.getElementById('recom-container');
+        const showsContainer = document.getElementById('shows-container');
 
-    try {
-        // Cargar datos de la pestaña Recomendaciones
-        const resRecom = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
-        const recomData = await resRecom.json();
-        
-        if (recomContainer && recomData.length > 0) {
-            recomContainer.innerHTML = recomData.map(r => `
-                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <h4 style="margin:0 0 8px 0; color:#1f2937;">📍 ${r.Titulo || 'Recomendación'}</h4>
-                    <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>')}</div>
-                </div>
-            `).join('');
+        try {
+            const resRecom = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
+            const recomData = await resRecom.json();
+            
+            if (recomContainer && recomData.length > 0) {
+                recomContainer.innerHTML = recomData.map(r => `
+                    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h4 style="margin:0 0 8px 0; color:#1f2937;">📍 ${r.Titulo || 'Recomendación'}</h4>
+                        <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>')}</div>
+                    </div>
+                `).join('');
+            }
+
+            const resShows = await fetch(`${SCRIPT_URL}?sheet=Shows`);
+            const showsData = await resShows.json();
+
+            if (showsContainer && showsData.length > 0) {
+                showsContainer.innerHTML = showsData.map(s => `
+                    <div style="background:#fff; border:1px solid #fbcfe8; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h4 style="margin:0 0 8px 0; color:#991b1b;">🎟️ ${s.Titulo || 'Evento'}</h4>
+                        <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(s.Detalles || s.aiDetails || '').replace(/\n/g, '<br>')}</div>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.warn('Cargando recomendaciones locales...');
         }
-
-        // Cargar datos de la pestaña Shows
-        const resShows = await fetch(`${SCRIPT_URL}?sheet=Shows`);
-        const showsData = await resShows.json();
-
-        if (showsContainer && showsData.length > 0) {
-            showsContainer.innerHTML = showsData.map(s => `
-                <div style="background:#fff; border:1px solid #fbcfe8; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <h4 style="margin:0 0 8px 0; color:#991b1b;">🎟️ ${s.Titulo || 'Evento'}</h4>
-                    <div style="font-size:0.9em; color:#374151; line-height:1.5;">${(s.Detalles || s.aiDetails || '').replace(/\n/g, '<br>')}</div>
-                </div>
-            `).join('');
-        }
-    } catch (err) {
-        console.warn('Cargando respuestas desde caché local...');
-        if (typeof updateAIViews === 'function') updateAIViews();
     }
-}
 
-// Inicializador optimizado: Lee de Google Sheets y NO llama a la API sola
-async function initApp() {
-    await loadAccommodationsFromSheet();
-    await loadEventsFromSheet();
-    autoDetectStartDate();
-    renderHeaderDays();
-    buildGrid(localEvents);
-    
-    // Carga instantánea desde Google Sheets
-    loadRecommendationsFromSheet(); 
-}
-
-document.addEventListener('DOMContentLoaded', initApp);
     async function initApp() {
         await loadAccommodationsFromSheet();
         await loadEventsFromSheet();
@@ -1010,12 +1084,12 @@ document.addEventListener('DOMContentLoaded', initApp);
         renderHeaderDays();
         buildGrid(localEvents);
         
-        updateAIViews(); 
-        populateAutoRecommendations(); 
+        setupTravelerUI();
+        loadRecommendationsFromSheet();
+        loadExpensesFromSheet();
     }
 
-    document.addEventListener('DOMContentLoaded', updateAIViews);
-    initApp();
+    document.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
