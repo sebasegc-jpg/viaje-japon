@@ -73,10 +73,16 @@
         .event-transporte { background-color: var(--accent-transport); color: #15803d; }
         .event-show { background-color: var(--accent-show); color: #be185d; }
 
-        /* Contenedor del Mapa */
-        .map-container { width: 100%; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); margin-top: 1rem; position: relative; z-index: 1; }
+        /* Contenedor del Mapa y Cronología */
+        .map-layout { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+        .map-container { flex: 2; min-width: 320px; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); position: relative; z-index: 1; }
         #leaflet-map { width: 100%; height: 100%; }
         
+        .timeline-container { flex: 1; min-width: 280px; max-height: 550px; overflow-y: auto; background: #fff; border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
+        .timeline-item { padding: 0.8rem; border-left: 3px solid var(--primary); background: #f8fafc; border-radius: 0 6px 6px 0; margin-bottom: 0.8rem; font-size: 0.85rem; }
+        .timeline-item h5 { font-size: 0.9rem; color: var(--text-dark); margin-bottom: 4px; }
+        .timeline-date { font-size: 0.75rem; color: var(--primary); font-weight: bold; }
+
         /* Grid Recomendaciones */
         .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
 
@@ -87,7 +93,7 @@
 
         /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 200; }
-        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 0.5rem; width: 90%; max-width: 520px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 0.5rem; width: 90%; max-width: 550px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .close-btn { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); }
         .form-group { margin-bottom: 1rem; }
@@ -136,7 +142,6 @@
                     <h3>Distribución Horaria (00:00 - 24:00)</h3>
                     <div class="week-selector" id="week-selector-container" style="margin-top:0.5rem;">
                         <span style="font-size:0.85rem; font-weight:600;">Semana:</span>
-                        <!-- Botones de semanas generados dinámicamente -->
                     </div>
                 </div>
                 <button class="btn-add-event" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Añadir Evento</button>
@@ -146,7 +151,6 @@
                 <table class="schedule-table">
                     <thead>
                         <tr id="table-header-days">
-                            <!-- Se genera dinámicamente -->
                         </tr>
                     </thead>
                     <tbody id="grid-body">
@@ -155,12 +159,12 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 2: TRANSPORTE Y MAPA INTERACTIVO CON PINES -->
+        <!-- PESTAÑA 2: TRANSPORTE Y MAPA INTERACTIVO CON CRONOLOGÍA -->
         <section id="transporte" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom:0.8rem;">
                 <div>
-                    <h3>Mapa Interactivo de Rutas y Alojamientos</h3>
-                    <p style="color: var(--text-muted); font-size:0.85rem;">Puntos clave cargados automáticamente desde tu planilla.</p>
+                    <h3>Mapa & Accesos Rápidos del Viaje</h3>
+                    <p style="color: var(--text-muted); font-size:0.85rem;">Puntos clave y cronología de trayectos ordenada por fecha.</p>
                 </div>
                 <div class="zone-filters" style="margin-bottom:0;">
                     <button class="filter-btn" onclick="zoomMapTo('hokkaido')">🏂 Norte / Snowboard</button>
@@ -172,8 +176,18 @@
                 </div>
             </div>
             
-            <div class="map-container">
-                <div id="leaflet-map"></div>
+            <div class="map-layout">
+                <div class="map-container">
+                    <div id="leaflet-map"></div>
+                </div>
+                
+                <div class="timeline-container">
+                    <h4 style="margin-bottom:0.8rem; color:var(--text-dark); border-bottom:2px solid var(--border); padding-bottom:0.4rem;">
+                        📅 Cronología de Ruta
+                    </h4>
+                    <div id="timeline-list">
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -255,7 +269,6 @@
             </div>
 
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                <!-- Formulario de Registro de Gastos -->
                 <form id="expense-form" onsubmit="addExpense(event)" style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); flex:1; min-width:300px;">
                     <h4 style="margin-bottom:1rem; color:var(--text-dark);">➕ Registrar Nuevo Gasto</h4>
                     <div class="form-group">
@@ -285,7 +298,6 @@
                         <div class="form-group" style="flex:1;">
                             <label>Pagado por:</label>
                             <select id="exp-payer">
-                                <!-- Se carga dinámicamente -->
                             </select>
                         </div>
                         <div class="form-group" style="flex:1;">
@@ -311,7 +323,6 @@
                     <button type="submit" class="btn-add-event" style="width:100%; justify-content:center;">➕ Registrar Gasto</button>
                 </form>
 
-                <!-- Balance y Cuentas Claras -->
                 <div style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); width:340px; height:fit-content;">
                     <h4 style="margin-bottom:0.8rem; color:var(--text-dark);">⚖️ Balance & Cuentas Claras</h4>
                     
@@ -325,7 +336,6 @@
                         <h3 id="total-p2-usd">$0.00 USD</h3>
                     </div>
 
-                    <!-- ESTADO DE DEUDA CRUZADA -->
                     <div id="settlement-box" style="margin-bottom:0.8rem; padding:0.8rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px;">
                         <p style="font-size:0.8rem; color:#1e40af; font-weight:bold;">🤝 Ajuste de Deudas:</p>
                         <p id="settlement-text" style="font-size:0.9rem; font-weight:bold; color:#1d4ed8; margin-top:4px;">Cuentas saldadas (0 USD)</p>
@@ -351,17 +361,20 @@
         </div>
     </div>
 
-    <!-- Modal Agregar Evento -->
+    <!-- Modal Agregar / Editar Evento -->
     <div class="modal" id="addModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Añadir Nueva Actividad</h3>
+                <h3 id="modalFormHeaderTitle">Añadir Nueva Actividad</h3>
                 <button class="close-btn" onclick="closeModal('addModal')">&times;</button>
             </div>
             <form id="addEventForm" onsubmit="saveEvent(event)">
+                <input type="hidden" id="ev-old-title" value="">
+                <input type="hidden" id="ev-old-date" value="">
+
                 <div class="form-group">
                     <label>Título de la actividad / lugar</label>
-                    <input type="text" id="ev-title" required placeholder="Ej: Vuelo Buenos Aires - Tokio / Tren bala">
+                    <input type="text" id="ev-title" required placeholder="Ej: Vuelo Buenos Aires - Tokio / Hokuriku Shinkansen">
                 </div>
                 
                 <div style="display: flex; gap: 0.5rem;">
@@ -394,7 +407,7 @@
                     <div class="form-group" style="flex:1;">
                         <label>Tipo de Evento</label>
                         <select id="ev-type" onchange="toggleLocationFields()">
-                            <option value="transporte">Transporte / Traslado / Vuelo</option>
+                            <option value="transporte">Transporte / Vuelo / Tren</option>
                             <option value="actividad">Actividad / Visita</option>
                             <option value="show">Show / Concierto</option>
                             <option value="sleep">Descanso</option>
@@ -402,29 +415,34 @@
                     </div>
                 </div>
 
-                <div class="form-group" id="single-location-group" style="display:none;">
-                    <label>Ubicación / Dirección</label>
-                    <input type="text" id="ev-location" placeholder="Ej: Gion, Kioto">
+                <div class="form-group" id="booking-code-group">
+                    <label>Código de Reserva / Pasaje (Opcional)</label>
+                    <input type="text" id="ev-booking-code" placeholder="Ej: Ticket #126 / PNR: XY892K">
                 </div>
 
-                <div style="display: flex; gap: 0.5rem;" id="transport-location-group">
-                    <div class="form-group" style="flex:1;">
-                        <label>Origen</label>
-                        <input type="text" id="ev-origin" placeholder="Ej: Aeropuerto Ezeiza">
+                <div class="form-group" id="single-location-group" style="display:none;">
+                    <label>Ubicación / Dirección / Link Google Maps</label>
+                    <input type="text" id="ev-location" placeholder="Ej: https://maps.app.goo.gl/... o Gion, Kioto">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; flex-direction:column;" id="transport-location-group">
+                    <div class="form-group">
+                        <label>Origen (Nombre o Link de Google Maps)</label>
+                        <input type="text" id="ev-origin-link" placeholder="Ej: https://maps.app.goo.gl/... o Estación Tokio">
                     </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Destino</label>
-                        <input type="text" id="ev-destination" placeholder="Ej: Aeropuerto Haneda">
+                    <div class="form-group">
+                        <label>Destino (Nombre o Link de Google Maps)</label>
+                        <input type="text" id="ev-dest-link" placeholder="Ej: https://maps.app.goo.gl/... o Estación Nagano">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Costo Estimado (USD)</label>
-                    <input type="number" id="ev-cost" placeholder="Ej: 2000">
+                    <input type="number" id="ev-cost" placeholder="Ej: 120">
                 </div>
                 <div class="form-group">
                     <label>Detalles / Links / Notas</label>
-                    <textarea id="ev-details" rows="3" placeholder="Ej: Salida 00:20hs Ezeiza. Llegada 19:00hs Haneda. Escala en Dallas."></textarea>
+                    <textarea id="ev-details" rows="3" placeholder="Ej: Salida 14:00hs. Vista al Monte Fuji del lado derecho."></textarea>
                 </div>
                 <button type="submit" class="btn-add-event" style="width: 100%; justify-content: center;">Guardar Evento</button>
             </form>
@@ -435,7 +453,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpzehPnmQF6Uoi_AGncV5LFCqKx4G1Kj8Pm1xhK6_E1DKRhlyr4bzH7HXkxMNvhmeCBg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxe9NoJMcK7EAfkdwaQ8kPKXm37e6eIknN1wPqG-uvT0ytmdO5ZyzYndxUcpuShH5oVBg/exec";
     let JPY_USD_RATE = 155; 
 
     let START_DATE = null;
@@ -445,8 +463,7 @@
     let accommodationsData = [];
     let currentKeyIndex = 0;
 
-    let currentModalEventTitle = "";
-    let currentModalEventStart = "";
+    let currentModalEventObj = null;
 
     let rawRecomData = [];
     let rawShowsData = [];
@@ -466,12 +483,12 @@
     const KNOWN_PLACES_COORDS = {
         'hotel graphy shibuya': [35.6558, 139.7040],
         'fujitaya kyoto': [34.9922, 135.7485],
+        'nagano plaza hotel': [36.6432, 138.1886],
         'tokio': [35.6762, 139.6503],
         'kioto': [35.0116, 135.7681],
         'osaka': [34.6937, 135.5023]
     };
 
-    // --- CONVERSOR RÁPIDO DE MONEDA ---
     async function fetchLiveExchangeRate() {
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -500,7 +517,6 @@
         }
     }
 
-    // --- CÁLCULO DE DURACIÓN PARA VUELOS / EVENTOS LARGOS ---
     function calculateDuration() {
         const startDateVal = document.getElementById('ev-date').value;
         const startHourVal = parseInt(document.getElementById('ev-hour').value) || 0;
@@ -532,6 +548,7 @@
             setTimeout(() => {
                 if (leafletMap) leafletMap.invalidateSize();
                 else initLeafletMap();
+                renderTimeline();
             }, 200);
         }
     }
@@ -547,7 +564,7 @@
 
     function parseDateStr(rawDate) {
         if (!rawDate) return null;
-        let clean = rawDate.split(' ')[0].replace(/^"|"$/g, '').trim();
+        let clean = String(rawDate).split('T')[0].split(' ')[0].replace(/^"|"$/g, '').trim();
         if (clean.includes('/')) {
             let parts = clean.split('/');
             if (parts.length === 3) return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
@@ -649,40 +666,29 @@
     }
 
     async function loadEventsFromSheet() {
-        const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQNNb6BfPixR9FmDBmKMyY2Gf97AuAdmCs_EpQVoxnr-MSVls9z5efmxAuboZn4CLgwrfG_rBWHQ9/pub?gid=0&single=true&output=csv';
         try {
-            const response = await fetch(sheetCsvUrl);
-            const data = await response.text();
+            const res = await fetch(`${SCRIPT_URL}?sheet=Itinerario`);
+            const data = await res.json();
             
-            const rows = data.split(/\r?\n/).map(row => {
-                const result = [];
-                let insideQuote = false, entry = '';
-                for (let char of row) {
-                    if (char === '"' && !insideQuote) insideQuote = true;
-                    else if (char === '"' && insideQuote) insideQuote = false;
-                    else if (char === ',' && !insideQuote) { result.push(entry.trim()); entry = ''; }
-                    else entry += char;
-                }
-                result.push(entry.trim());
-                return result;
-            });
+            localEvents = data.map(row => {
+                const title = row.Titulo || row.title || '';
+                const date = row.Dia || row.date || '';
+                const startHour = parseInt(row.HoraInicio !== undefined ? row.HoraInicio : row.startHour) || 0;
+                const durationHours = parseInt(row.DuracionHoras || row.durationHours) || 1;
+                const type = row.Tipo || row.type || 'actividad';
+                const location = row.Ubicacion || row.location || '';
+                const cost = row.Costo || row.cost || '';
+                const details = row.Detalles || row.details || '';
+                const aiDetails = row.aiDetails || '';
+                const bookingCode = row.CodigoReserva || row.bookingCode || '';
+                const originLink = row.OrigenLink || row.originLink || '';
+                const destLink = row.DestinoLink || row.destLink || '';
+                const endDate = row.FechaLlegada || row.endDate || date;
+                const endHour = row.HoraLlegada !== undefined ? parseInt(row.HoraLlegada) : startHour;
 
-            const events = rows.slice(1).map(row => {
-                if (row.length < 2) return null;
-                const title = (row[0] || '').replace(/^"|"$/g, '').trim();
-                const date = (row[1] || '').replace(/^"|"$/g, '').trim();
-                const startHour = parseInt((row[2] || '').replace(/^"|"$/g, '')) || 0;
-                const durationHours = parseInt((row[3] || '').replace(/^"|"$/g, '')) || 1;
-                const type = (row[4] || 'actividad').replace(/^"|"$/g, '').trim();
-                let rawLocation = (row[5] || '').replace(/^"|"$/g, '').trim();
-                let location = rawLocation.replace(/➔/g, '->').replace(/→/g, '->').replace(/&rarr;/g, '->');
-                const cost = (row[6] || '').replace(/^"|"$/g, '').trim();
-                const details = (row[7] || '').replace(/^"|"$/g, '').trim();
+                return { title, date, startHour, durationHours, type, location, cost, details, aiDetails, bookingCode, originLink, destLink, endDate, endHour };
+            }).filter(e => e.title !== '');
 
-                return { title, date, startHour, durationHours, type, location, cost, details };
-            }).filter(e => e !== null && e.title !== '');
-
-            localEvents = events;
         } catch (error) {
             console.error('Error al cargar la planilla:', error);
         }
@@ -713,7 +719,7 @@
             if (acc) {
                 const safeName = acc.name.replace(/'/g, "\\'");
                 const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
-                stayHTML = `<div class="day-stay" onclick="showModal('${safeName}', 'Alojamiento Confirmado', '${safeUrl}', '', '${formatDateToISO(d)}')">🏨 ${acc.name}</div>`;
+                stayHTML = `<div class="day-stay" onclick="showModalByTitle('${safeName}')">🏨 ${acc.name}</div>`;
             }
 
             html += `<th><div class="day-header"><div class="day-date">${formattedDate}</div>${stayHTML}</div></th>`;
@@ -760,19 +766,15 @@
 
                     let visualSpan = Math.min(duration, 24 - hour);
 
-                    let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
-                    if (ev.type === 'transporte' && (!ev.origin && !ev.destination)) locText = ev.location || '';
+                    let locText = ev.type === 'transporte' ? `${ev.originLink || ''} ➔ ${ev.destLink || ''}` : (ev.location || '');
+                    if (ev.type === 'transporte' && (!ev.originLink && !ev.destLink)) locText = ev.location || '';
 
                     let safeTitle = ev.title.replace(/'/g, "\\'");
-                    let safeDetails = (ev.details || '').replace(/'/g, "\\'").replace(/\n/g, '<br>');
-                    let safeLoc = (locText || '').replace(/'/g, "\\'");
-                    let safeCost = (ev.cost || '').replace(/'/g, "\\'");
-
-                    let arrivalInfo = (ev.endDate && ev.endHour !== undefined) ? `<br>🛬 Llegada: ${ev.endDate} ${ev.endHour.toString().padStart(2,'0')}:00` : '';
+                    let icon = ev.type === 'transporte' ? '✈️' : (ev.type === 'sleep' ? '🏨' : '📍');
 
                     rowHTML += `<td rowspan="${visualSpan}">
-                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}${arrivalInfo}', '${safeLoc}', '${safeCost}', '${ev.date}')">
-                            <div><b>✈️ ${ev.title}</b></div>
+                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModalByObject('${safeTitle}', '${ev.date}', ${ev.startHour})">
+                            <div><b>${icon} ${ev.title}</b></div>
                             <div style="font-size:0.7rem; opacity:0.85;">${duration}h totales | ${locText}</div>
                         </div>
                     </td>`;
@@ -785,170 +787,82 @@
         }
     }
 
-    function getApiKeys() {
-        let storedKeys = localStorage.getItem('GEMINI_API_KEYS');
-        if (!storedKeys) {
-            let input = prompt("Ingresa tus API Keys de Gemini (hasta 3 separadas por coma):");
-            if (input) {
-                storedKeys = input.trim();
-                localStorage.setItem('GEMINI_API_KEYS', storedKeys);
-            } else {
-                return [];
-            }
+    function showModalByTitle(title) {
+        let acc = accommodationsData.find(a => a.name === title);
+        if (acc) {
+            document.getElementById('modalTitle').innerText = acc.name;
+            document.getElementById('modalBody').innerHTML = `
+                <p><b>Ubicación:</b> ${acc.name}, Japón</p>
+                <p><b>Estadía:</b> ${acc.start} hasta ${acc.end}</p>
+                <div style="margin-top:1rem;">
+                    <a href="${acc.mapUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(acc.name + ', Japan')}" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">
+                        🗺️ Abrir ubicación en Google Maps
+                    </a>
+                </div>
+            `;
+            document.getElementById('eventModal').style.display = 'flex';
         }
-        return storedKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
     }
 
-    async function analyzeWithAI(title, details, location, dateStr, forceRefresh = false) {
-        const cacheKey = 'AI_CACHE_' + title.replace(/\s+/g, '_');
-        
-        if (!forceRefresh) {
-            const cachedData = localStorage.getItem(cacheKey);
-            if (cachedData) {
-                const parsed = JSON.parse(cachedData);
-                displayAIResult(title, details, location, dateStr, parsed.text);
-                return;
-            }
-        }
+    function showModalByObject(title, date, startHour) {
+        const ev = localEvents.find(e => e.title === title && e.date === date && e.startHour === startHour);
+        if (!ev) return;
 
-        const keys = getApiKeys();
-        if (keys.length === 0) return;
+        currentModalEventObj = ev;
+        document.getElementById('modalTitle').innerText = ev.title;
 
-        const aiContent = document.getElementById('aiContent');
-        if (aiContent) aiContent.innerHTML = '⏳ Consultando al asistente de IA...';
+        let bookingHTML = ev.bookingCode ? `<p style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.85rem; margin-bottom:8px;">🎟️ Reserva/Ticket: ${ev.bookingCode}</p>` : '';
 
-        const promptText = `Eres un guía experto en viajes a Japón. Analiza esta actividad:
-        - Evento: ${title}
-        - Fecha/Hora: ${dateStr}
-        - Ubicación: ${location}
-        - Detalles: ${details}
-
-        Instrucciones:
-        1. Si es un lugar/templo fijo, dame 2 tips prácticos de transporte/llegada.
-        2. Si detectas eventos temporales cerca de esa fecha (shows, conciertos, pop-ups), etiquétalos explícitamente como [TEMPORAL].
-        3. Responde en español y muy directo en viñetas cortas.`;
-
-        let success = false;
-
-        for (let i = 0; i < keys.length; i++) {
-            const activeKey = keys[(currentKeyIndex + i) % keys.length];
+        let routeHTML = '';
+        if (ev.type === 'transporte') {
+            let orig = ev.originLink || 'Origen no especificado';
+            let dest = ev.destLink || 'Destino no especificado';
             
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                });
+            let origLink = orig.startsWith('http') ? `<a href="${orig}" target="_blank" style="color:#1d4ed8; text-decoration:underline;">📍 Abrir Origen en Maps</a>` : orig;
+            let destLink = dest.startsWith('http') ? `<a href="${dest}" target="_blank" style="color:#1d4ed8; text-decoration:underline;">📍 Abrir Destino en Maps</a>` : dest;
 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
-
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    const rawText = data.candidates[0].content.parts[0].text;
-                    
-                    const cachePayload = { title: title, dateStr: dateStr, text: rawText, timestamp: new Date().toISOString() };
-                    localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
-
-                    displayAIResult(title, details, location, dateStr, rawText);
-                    saveAIToSheet(title, rawText);
-
-                    success = true;
-                    currentKeyIndex = (currentKeyIndex + i) % keys.length;
-                    break; 
-                }
-            } catch (err) {
-                console.warn(`Clave ${i + 1} falló. Probando siguiente...`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-
-        if (!success && aiContent) {
-            aiContent.innerHTML = `
-                <span style="color:#b91c1c;">
-                    ❌ Todas las claves configuradas agotaron su cuota por el momento.
-                    <button onclick="localStorage.removeItem('GEMINI_API_KEYS'); alert('Claves borradas.');" style="margin-left:5px; cursor:pointer;">
-                        Reingresar Claves
-                    </button>
-                </span>`;
-        }
-    }
-
-    function displayAIResult(title, details, location, dateStr, rawText) {
-        const aiContent = document.getElementById('aiContent');
-        if (!aiContent) return;
-
-        const resultText = rawText.replace(/\n/g, '<br>');
-        aiContent.innerHTML = `
-            <div style="line-height:1.4;">${resultText}</div>
-            <div style="margin-top:10px; font-size:0.8em; text-align:right;">
-                <button onclick="analyzeWithAI('${title}', '${details}', '${location}', '${dateStr}', true)" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; padding:2px 6px;">🔄 Actualizar datos</button>
-            </div>`;
-    }
-
-    // --- CÁLCULO DE RUTAS AUTOMÁTICAS DESDE EL HOTEL DEL DÍA ---
-    function showModal(title, details, location, cost, dateStr) {
-        currentModalEventTitle = title;
-        currentModalEventStart = dateStr;
-
-        document.getElementById('modalTitle').innerText = title;
-        
-        let mapUrl = '#';
-
-        let evDate = parseDateStr(dateStr);
-        let acc = accommodationsData.find(a => {
-            let s = parseDateStr(a.start), e = parseDateStr(a.end);
-            if (!s || !e || !evDate) return false;
-            let target = new Date(evDate.getFullYear(), evDate.getMonth(), evDate.getDate());
-            let st = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-            let en = new Date(e.getFullYear(), e.getMonth(), e.getDate());
-            return target >= st && target <= en;
-        });
-        
-        let currentHotel = acc ? acc.name : "";
-
-        let cleanLoc = (location || '').replace(/^"|"$/g, '').trim();
-        let destinationQuery = title;
-
-        if (cleanLoc !== '' && !cleanLoc.includes('maps.app.goo.gl') && !cleanLoc.includes('goo.gl') && !cleanLoc.includes('http')) {
-            destinationQuery = cleanLoc;
-        }
-
-        const destination = encodeURIComponent(destinationQuery + ", Japan");
-
-        if (currentHotel) {
-            const origin = encodeURIComponent(currentHotel + ", Japan");
-            mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit&hl=es`;
+            routeHTML = `
+                <div style="margin: 0.8rem 0; padding: 0.8rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 0.85rem;">
+                    <p style="font-weight:bold; color:#1e40af; margin-bottom:4px;">🚉 Trayecto de Transporte:</p>
+                    <p><b>Origen:</b> ${origLink}</p>
+                    <p><b>Destino:</b> ${destLink}</p>
+                </div>`;
         } else {
-            mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=transit&hl=es`;
+            let loc = ev.location || ev.title;
+            let locLink = loc.startsWith('http') ? `<a href="${loc}" target="_blank" style="color:#1d4ed8; text-decoration:underline;">📍 Abrir en Google Maps</a>` : loc;
+            routeHTML = `<p><b>Ubicación:</b> ${locLink}</p>`;
         }
+
+        let arrivalInfo = (ev.endDate) ? `<p><b>Llegada / Fin:</b> ${ev.endDate} ${ev.endHour || 0}:00hs</p>` : '';
 
         document.getElementById('modalBody').innerHTML = `
-            <p><b>Ubicación / Lugar:</b> ${cleanLoc || title}</p>
-            <p><b>Costo aproximado:</b> ${cost ? '$' + cost + ' USD' : 'Gratis / N/A'}</p>
-            
-            <div style="margin: 0.8rem 0; padding: 0.8rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 0.85rem;">
-                <p style="margin-bottom: 0.3rem; font-weight:bold; color:#1e40af;">🧭 Recorrido en Transporte Público (Tren / Subte):</p>
-                <p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:#1d4ed8; font-weight:bold; text-decoration:underline;">
-                    📍 ${currentHotel ? `Ver trayecto en tren desde ${currentHotel} hasta${title}` : `Ver cómo llegar a ${title}`}
-                </a></p>
-            </div>
+            ${bookingHTML}
+            <p><b>Salida / Inicio:</b> ${ev.date} ${ev.startHour}:00hs</p>
+            ${arrivalInfo}
+            <p><b>Duración:</b> ${ev.durationHours} horas</p>
+            <p><b>Costo estimado:</b> ${ev.cost ? '$' + ev.cost + ' USD' : 'Gratis / N/A'}</p>
+            ${routeHTML}
 
             <hr style="margin: 0.8rem 0; border:0; border-top: 1px solid var(--border);">
             <p><b>Notas & Detalles:</b></p>
-            <p>${details || 'Sin detalles adicionales.'}</p>
+            <p>${ev.details || 'Sin detalles adicionales.'}</p>
 
             <div style="margin-top: 1rem; padding: 0.8rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                 <p style="font-weight: bold; color: #166534; margin-bottom: 0.4rem;">🤖 Asistente Gemini IA:</p>
                 <div id="aiContent" style="font-size: 0.85rem; color: #15803d;">
-                    <button onclick="analyzeWithAI('${title.replace(/'/g, "\\'")}', '${details.replace(/'/g, "\\'")}', '${cleanLoc.replace(/'/g, "\\'")}', '${dateStr}')" 
+                    ${ev.aiDetails ? ev.aiDetails.replace(/\n/g, '<br>') : `
+                    <button onclick="analyzeWithAI('${ev.title.replace(/'/g, "\\'")}', '${(ev.details||'').replace(/'/g, "\\'")}', '${(ev.location\vert{}\vert{}'').replace(/'/g, "\\'")}', '${ev.date}')" 
                             style="background: #166534; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">
-                        🔍 Calcular traslados desde mi hotel y buscar referencias
-                    </button>
+                        🔍 Consultar recomendaciones Gemini IA
+                    </button>`}
                 </div>
             </div>
 
-            <div style="margin-top:15px; text-align:right;">
-                <button onclick="deleteEvent(currentModalEventTitle, currentModalEventStart)" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
+            <div style="margin-top:15px; display:flex; justify-content:space-between; gap:0.5rem;">
+                <button onclick="editEventModal()" style="background:#0284c7; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    ✏️ Editar Evento
+                </button>
+                <button onclick="deleteEvent('${ev.title.replace(/'/g, "\\'")}', '${ev.date}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
                     🗑️ Eliminar Evento
                 </button>
             </div>
@@ -957,7 +871,43 @@
         document.getElementById('eventModal').style.display = 'flex';
     }
 
-    function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
+    function openAddModal() { 
+        document.getElementById('modalFormHeaderTitle').innerText = "Añadir Nueva Actividad";
+        document.getElementById('addEventForm').reset();
+        document.getElementById('ev-old-title').value = "";
+        document.getElementById('ev-old-date').value = "";
+        toggleLocationFields();
+        document.getElementById('addModal').style.display = 'flex'; 
+    }
+
+    function editEventModal() {
+        if (!currentModalEventObj) return;
+        const ev = currentModalEventObj;
+        
+        closeModal('eventModal');
+        document.getElementById('modalFormHeaderTitle').innerText = "Editar Actividad / Evento";
+        
+        document.getElementById('ev-old-title').value = ev.title;
+        document.getElementById('ev-old-date').value = ev.date;
+
+        document.getElementById('ev-title').value = ev.title;
+        document.getElementById('ev-date').value = ev.date;
+        document.getElementById('ev-hour').value = ev.startHour;
+        document.getElementById('ev-end-date').value = ev.endDate || ev.date;
+        document.getElementById('ev-end-hour').value = ev.endHour || ev.startHour;
+        document.getElementById('ev-duration').value = ev.durationHours;
+        document.getElementById('ev-type').value = ev.type || 'actividad';
+        document.getElementById('ev-booking-code').value = ev.bookingCode || '';
+        document.getElementById('ev-location').value = ev.location || '';
+        document.getElementById('ev-origin-link').value = ev.originLink || '';
+        document.getElementById('ev-dest-link').value = ev.destLink || '';
+        document.getElementById('ev-cost').value = ev.cost || '';
+        document.getElementById('ev-details').value = ev.details || '';
+
+        toggleLocationFields();
+        document.getElementById('addModal').style.display = 'flex';
+    }
+
     function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
     function toggleLocationFields() {
@@ -970,20 +920,30 @@
         e.preventDefault();
         const type = document.getElementById('ev-type').value;
 
+        const oldTitle = document.getElementById('ev-old-title').value;
+        const oldDate = document.getElementById('ev-old-date').value;
+
         const newEv = {
             title: document.getElementById('ev-title').value,
             date: document.getElementById('ev-date').value,
-            startHour: parseInt(document.getElementById('ev-hour').value),
+            startHour: parseInt(document.getElementById('ev-hour').value) || 0,
             endDate: document.getElementById('ev-end-date').value || document.getElementById('ev-date').value,
-            endHour: parseInt(document.getElementById('ev-end-hour').value) || parseInt(document.getElementById('ev-hour').value),
-            durationHours: parseInt(document.getElementById('ev-duration').value),
+            endHour: parseInt(document.getElementById('ev-end-hour').value) || 0,
+            durationHours: parseInt(document.getElementById('ev-duration').value) || 1,
             type: type,
+            bookingCode: document.getElementById('ev-booking-code').value,
             location: document.getElementById('ev-location').value,
-            origin: document.getElementById('ev-origin').value,
-            destination: document.getElementById('ev-destination').value,
+            originLink: document.getElementById('ev-origin-link').value,
+            destLink: document.getElementById('ev-dest-link').value,
             cost: document.getElementById('ev-cost').value,
-            details: document.getElementById('ev-details').value
+            details: document.getElementById('ev-details').value,
+            oldTitle: oldTitle,
+            oldDate: oldDate
         };
+
+        if (oldTitle && oldDate) {
+            localEvents = localEvents.filter(ev => !(ev.title === oldTitle && ev.date === oldDate));
+        }
 
         localEvents.push(newEv);
         autoDetectTripBounds();
@@ -993,31 +953,12 @@
         fetch(SCRIPT_URL, {
             method: "POST",
             body: JSON.stringify(newEv)
-        }).then(res => console.log("Evento guardado correctamente.")).catch(err => console.error("Error al guardar:", err));
+        }).then(res => console.log("Guardado en Google Sheets")).catch(err => console.error("Error al guardar:", err));
 
         closeModal('addModal');
         document.getElementById('addEventForm').reset();
-        toggleLocationFields();
     }
 
-    async function saveAIToSheet(title, aiText) {
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'updateAI',
-                    title: title,
-                    aiDetails: aiText
-                })
-            });
-        } catch (err) {
-            console.warn('Error al sincronizar con Google Sheets:', err);
-        }
-    }
-
-    // --- BORRADO LIMPIO DE EVENTOS ---
     async function deleteEvent(title, start) {
         if (!confirm(`¿Estás seguro de que deseas eliminar "${title}"?`)) return;
 
@@ -1034,340 +975,62 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'delete',
+                    sheet: 'Itinerario',
                     title: title,
                     start: start
                 })
             });
-            console.log(`Evento "${title}" borrado correctamente.`);
         } catch (err) {
-            alert('Error al sincronizar borrado con Google Sheets.');
+            alert('Error al sincronizar borrado.');
         }
     }
 
-    // --- LÓGICA DE VIAJEROS, GASTOS Y DIVISIÓN DE CUENTAS ---
-    function getTravelers() {
-        let traveler1 = localStorage.getItem('TRAVELER_1');
-        let traveler2 = localStorage.getItem('TRAVELER_2');
-
-        if (!traveler1 || !traveler2) {
-            traveler1 = prompt("Ingresa el nombre del primer viajero:", "Sebas") || "Sebas";
-            traveler2 = prompt("Ingresa el nombre del segundo viajero:", "Hilsa") || "Hilsa";
-            
-            localStorage.setItem('TRAVELER_1', traveler1.trim());
-            localStorage.setItem('TRAVELER_2', traveler2.trim());
-        }
-        return { p1: traveler1, p2: traveler2 };
-    }
-
-    function resetTravelers() {
-        localStorage.removeItem('TRAVELER_1');
-        localStorage.removeItem('TRAVELER_2');
-        setupTravelerUI();
-        loadExpensesFromSheet();
-    }
-
-    function setupTravelerUI() {
-        const { p1, p2 } = getTravelers();
-        
-        const payerSelect = document.getElementById('exp-payer');
-        if (payerSelect) {
-            payerSelect.innerHTML = `
-                <option value="${p1}">${p1}</option>
-                <option value="${p2}">${p2}</option>
-            `;
-        }
-
-        const splitSelect = document.getElementById('exp-split');
-        if (splitSelect) {
-            splitSelect.innerHTML = `
-                <option value="both">Compartido (50% / 50%)</option>
-                <option value="p1_only">Solo ${p1}</option>
-                <option value="p2_only">Solo ${p2}</option>
-            `;
-        }
-
-        const lblP1 = document.getElementById('lbl-p1');
-        const lblP2 = document.getElementById('lbl-p2');
-        if (lblP1) lblP1.innerText = `Total Pagado por ${p1}:`;
-        if (lblP2) lblP2.innerText = `Total Pagado por ${p2}:`;
-    }
-
-    async function addExpense(event) {
-        if (event) event.preventDefault();
-        
-        const date = document.getElementById('exp-date')?.value || new Date().toISOString().split('T')[0];
-        const concept = document.getElementById('exp-concept')?.value || '';
-        const currency = document.getElementById('exp-currency')?.value || 'JPY';
-        const rawAmount = parseFloat(document.getElementById('exp-amount')?.value) || 0;
-        const pagadoPor = document.getElementById('exp-payer')?.value || 'Sebas';
-        const divididoPor = document.getElementById('exp-split')?.value || 'both';
-        const categoria = document.getElementById('exp-category')?.value || 'General';
-
-        let montoJpy = 0;
-        let montoUsd = 0;
-
-        if (currency === 'JPY') {
-            montoJpy = rawAmount;
-            montoUsd = (rawAmount / JPY_USD_RATE).toFixed(2);
-        } else {
-            montoUsd = rawAmount.toFixed(2);
-            montoJpy = Math.round(rawAmount * JPY_USD_RATE);
-        }
-
-        const payload = {
-            sheet: "Gastos",
-            date: date,
-            concept: concept,
-            montoJpy: montoJpy,
-            montoUsd: montoUsd,
-            pagadoPor: pagadoPor,
-            divididoPor: divididoPor,
-            categoria: categoria
-        };
-
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            alert('Gasto registrado con éxito.');
-            const form = document.getElementById('expense-form');
-            if (form) form.reset();
-            loadExpensesFromSheet();
-        } catch (err) {
-            alert('Error al registrar el gasto.');
-        }
-    }
-
-    async function loadExpensesFromSheet() {
-        setupTravelerUI();
-        const { p1, p2 } = getTravelers();
-
-        try {
-            const res = await fetch(`${SCRIPT_URL}?sheet=Gastos`);
-            const data = await res.json();
-            
-            let p1USD = 0, p1JPY = 0;
-            let p2USD = 0, p2JPY = 0;
-
-            let p1ShouldPayUSD = 0;
-            let p2ShouldPayUSD = 0;
-
-            data.forEach(item => {
-                const usd = parseFloat(item.Monto_Dlr || item.montoUsd || 0);
-                const jpy = parseFloat(item.Monto_JPY || item.montoJpy || 0);
-                const payer = (item.PagadoPor || item.pagadoPor || '').trim().toLowerCase();
-                const split = (item.DivididoPor || item.divididoPor || 'both').trim().toLowerCase();
-
-                const isP1 = payer.includes(p1.toLowerCase());
-                
-                if (isP1) {
-                    p1USD += usd;
-                    p1JPY += jpy;
-                } else {
-                    p2USD += usd;
-                    p2JPY += jpy;
-                }
-
-                if (split === 'p1_only') {
-                    p1ShouldPayUSD += usd;
-                } else if (split === 'p2_only') {
-                    p2ShouldPayUSD += usd;
-                } else {
-                    p1ShouldPayUSD += (usd / 2);
-                    p2ShouldPayUSD += (usd / 2);
-                }
-            });
-
-            document.getElementById('total-p1-usd').innerHTML = `$${p1USD.toFixed(2)} USD <small style="font-size:0.75rem; color:#15803d;">(¥${p1JPY.toLocaleString()} JPY)</small>`;
-            document.getElementById('total-p2-usd').innerHTML = `$${p2USD.toFixed(2)} USD <small style="font-size:0.75rem; color:#b45309;">(¥${p2JPY.toLocaleString()} JPY)</small>`;
-            document.getElementById('total-trip-usd').innerHTML = `$${(p1USD + p2USD).toFixed(2)} USD`;
-
-            const diffP1 = p1USD - p1ShouldPayUSD; 
-            const settlementBox = document.getElementById('settlement-text');
-            if (settlementBox) {
-                if (Math.abs(diffP1) < 0.05) {
-                    settlementBox.innerText = "✨ Cuentas saldadas perfectamente (0 USD)";
-                    settlementBox.style.color = "#166534";
-                } else if (diffP1 > 0) {
-                    settlementBox.innerText = `🚩 ${p2} le debe $${diffP1.toFixed(2)} USD a ${p1}`;
-                    settlementBox.style.color = "#b45309";
-                } else {
-                    settlementBox.innerText = `🚩 ${p1} le debe $${Math.abs(diffP1).toFixed(2)} USD a ${p2}`;
-                    settlementBox.style.color = "#b45309";
-                }
-            }
-
-        } catch (e) {
-            console.warn("Cargando gastos...");
-        }
-    }
-
-    async function searchCustomAI(type) {
-        const isShow = (type === 'shows');
-        const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
-        const containerId = isShow ? 'shows-container' : 'recom-container';
-        
-        const inputEl = document.getElementById(inputId);
-        const container = document.getElementById(containerId);
-        if (!inputEl || !container) return;
-        
-        const userQuery = inputEl.value.trim();
-        if (!userQuery) {
-            alert("Escribe lo que deseas consultar.");
-            return;
-        }
-
-        const loadingCardId = 'loading-card-' + Date.now();
-        container.innerHTML = `
-            <div id="${loadingCardId}" style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:12px; margin-bottom:12px; grid-column: 1 / -1; color:#92400e; font-weight:bold;">
-                ⏳ Consultando a Gemini sobre "<b>${userQuery}</b>"...
-            </div>` + container.innerHTML;
-
-        let locations = "Tokio, Kioto, Osaka";
-        if (accommodationsData.length > 0) locations = [...new Set(accommodationsData.map(a => a.name))].join(', ');
-
-        const promptText = `Eres un guía experto en Japón. El usuario busca sobre: "${userQuery}". Responde en español con viñetas cortas y útiles.`;
-
-        const keys = getApiKeys();
-        if (keys.length === 0) {
-            document.getElementById(loadingCardId)?.remove();
-            return;
-        }
-
-        let resultText = "";
-        for (let i = 0; i < keys.length; i++) {
-            const activeKey = keys[(currentKeyIndex + i) % keys.length];
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                });
-
-                const data = await response.json();
-                if (data.candidates && data.candidates[0].content?.parts[0]?.text) {
-                    resultText = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
-                    currentKeyIndex = (currentKeyIndex + i) % keys.length;
-                    saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
-                    break;
-                }
-            } catch (err) {
-                console.warn(`Error clave ${i + 1}:`, err);
-            }
-        }
-
-        document.getElementById(loadingCardId)?.remove();
-        if (resultText) {
-            loadRecommendationsFromSheet();
-            inputEl.value = '';
-        }
-    }
-
-    async function saveCustomRecommendationToSheet(title, text, sheetName) {
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sheet: sheetName, title: title, details: text, aiDetails: text })
-            });
-        } catch (err) {}
-    }
-
-    async function loadRecommendationsFromSheet() {
-        try {
-            const resRecom = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
-            rawRecomData = await resRecom.json();
-            renderFilteredRecommendations(rawRecomData, 'recom-container', 'recom', 'all');
-
-            const resShows = await fetch(`${SCRIPT_URL}?sheet=Shows`);
-            rawShowsData = await resShows.json();
-            renderFilteredRecommendations(rawShowsData, 'shows-container', 'shows', 'all');
-        } catch (err) {}
-    }
-
-    function renderFilteredRecommendations(dataArray, containerId, type, zone) {
-        const container = document.getElementById(containerId);
+    // --- CRONOLOGÍA ORDENADA DE VIAJE (MAPA Y RUTAS) ---
+    function renderTimeline() {
+        const container = document.getElementById('timeline-list');
         if (!container) return;
 
-        let filtered = dataArray;
-        if (zone !== 'all') {
-            filtered = dataArray.filter(item => {
-                const text = ((item.Titulo || '') + ' ' + (item.Detalles || '') + ' ' + (item.aiDetails || '')).toLowerCase();
-                return text.includes(zone.toLowerCase());
+        let combined = [];
+
+        accommodationsData.forEach(a => {
+            let dObj = parseDateStr(a.start);
+            combined.push({
+                type: 'hotel',
+                title: a.name,
+                dateStr: a.start,
+                dateObj: dObj,
+                details: `Hotel confirmado hasta ${a.end}`,
+                link: a.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.name + ', Japan')}`
             });
-        }
+        });
 
-        if (filtered.length === 0) {
-            container.innerHTML = `<div style="grid-column:1/-1; color:var(--text-muted); font-size:0.9rem; padding:1rem; text-align:center;">No hay recomendaciones guardadas para esta zona.</div>`;
-            return;
-        }
+        localEvents.forEach(e => {
+            let dObj = parseDateStr(e.date);
+            let link = e.location || e.originLink || e.destLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.title + ', Japan')}`;
+            combined.push({
+                type: e.type,
+                title: e.title,
+                dateStr: e.date,
+                dateObj: dObj,
+                details: `${e.startHour}:00hs | ${e.details || ''}`,
+                link: link
+            });
+        });
 
-        const isShow = (type === 'shows');
-        container.innerHTML = filtered.map((r) => {
-            const title = r.Titulo || r.title || 'Recomendación';
-            const details = (r.Detalles || r.aiDetails || '').replace(/\n/g, '<br>');
-            const borderColor = isShow ? '#fbcfe8' : '#e5e7eb';
-            const titleColor = isShow ? '#991b1b' : '#1f2937';
-            const icon = isShow ? '🎟️' : '📍';
-            const sheetName = isShow ? 'Shows' : 'Recomendaciones';
+        combined.sort((a, b) => (a.dateObj || 0) - (b.dateObj || 0));
+
+        container.innerHTML = combined.map(item => {
+            let icon = item.type === 'transporte' ? '✈️' : (item.type === 'hotel' ? '🏨' : '📍');
+            let mapsBtn = item.link.startsWith('http') ? `<a href="${item.link}" target="_blank" style="color:var(--primary); font-weight:bold; font-size:0.75rem;">🗺️ Maps</a>` : '';
 
             return `
-                <div style="background:#fff; border:1px solid ${borderColor}; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-                    <details style="cursor:pointer;">
-                        <summary style="font-weight:bold; color:${titleColor}; font-size:1em; outline:none; display:flex; justify-content:space-between; align-items:center;">
-                            <span>${icon} ${title}</span>
-                            <small style="color:var(--primary); font-size:0.8em;">(Clic para desplegar)</small>
-                        </summary>
-                        <div style="margin-top:10px; font-size:0.9em; color:#374151; line-height:1.5; border-top:1px solid #f1f5f9; padding-top:10px;">
-                            ${details}
-                            <div style="text-align:right; margin-top:10px;">
-                                <button onclick="deleteRecommendation('${title.replace(/'/g, "\\'")}', '${sheetName}')" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
-                                    🗑️ Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    </details>
+                <div class="timeline-item">
+                    <div class="timeline-date">${item.dateStr}</div>
+                    <h5>${icon} ${item.title}</h5>
+                    <p style="color:var(--text-muted); font-size:0.75rem; margin-bottom:4px;">${item.details}</p>
+                    ${mapsBtn}
                 </div>`;
         }).join('');
-    }
-
-    function filterByZone(zone, type) {
-        const isShow = (type === 'shows');
-        const containerId = isShow ? 'shows-container' : 'recom-container';
-        const dataArray = isShow ? rawShowsData : rawRecomData;
-
-        renderFilteredRecommendations(dataArray, containerId, type, zone);
-
-        const sectionEl = document.getElementById(isShow ? 'shows' : 'reels');
-        if (sectionEl) {
-            sectionEl.querySelectorAll('.filter-btn').forEach(btn => {
-                const btnText = btn.innerText.toLowerCase();
-                btn.classList.toggle('active', btnText.includes(zone.toLowerCase()) || (zone === 'all' && btnText.includes('todas')));
-            });
-        }
-    }
-
-    async function deleteRecommendation(title, sheetName) {
-        if (!confirm(`¿Deseas eliminar "${title}" de la lista?`)) return;
-
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete', sheet: sheetName, title: title })
-            });
-
-            alert('Eliminado correctamente.');
-            loadRecommendationsFromSheet();
-        } catch (err) {
-            alert('Error al intentar eliminar.');
-        }
     }
 
     // --- MAPA INTERACTIVO (LEAFLET.JS) Y RENDERIZADO DE PINES ---
@@ -1403,13 +1066,13 @@
             }
 
             if (coords) {
-                const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.name + ', Japan')}`;
+                const mapSearchUrl = acc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.name + ', Japan')}`;
                 const marker = L.marker(coords).addTo(leafletMap);
                 
                 marker.bindPopup(`
                     <div style="font-family:Inter, sans-serif;">
                         <h4 style="margin:0 0 4px 0; color:#1e40af;">🏨 ${acc.name}</h4>
-                        <p style="font-size:0.8rem; color:#475569; margin-bottom:8px;">Alojamiento Confirmado</p>
+                        <p style="font-size:0.8rem; color:#475569; margin-bottom:8px;">Alojamiento (${acc.start} - ${acc.end})</p>
                         <a href="${mapSearchUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#bc002d; color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:0.75rem; font-weight:bold;">
                             🧭 Abrir en Google Maps
                         </a>
@@ -1425,14 +1088,6 @@
         const coords = CITY_COORDS[cityKey] || CITY_COORDS.all;
         const zoom = (cityKey === 'all') ? 7 : 12;
         leafletMap.setView(coords, zoom);
-
-        const sectionEl = document.getElementById('transporte');
-        if (sectionEl) {
-            sectionEl.querySelectorAll('.filter-btn').forEach(btn => {
-                const btnText = btn.innerText.toLowerCase();
-                btn.classList.toggle('active', btnText.includes(cityKey.toLowerCase()) || (cityKey === 'all' && btnText.includes('todo')));
-            });
-        }
     }
 
     // --- INICIALIZACIÓN GENERAL ---
@@ -1444,10 +1099,6 @@
         autoDetectTripBounds();
         renderHeaderDays();
         buildGrid(localEvents);
-        
-        setupTravelerUI();
-        loadRecommendationsFromSheet();
-        loadExpensesFromSheet();
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
