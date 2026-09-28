@@ -361,59 +361,70 @@
             <form id="addEventForm" onsubmit="saveEvent(event)">
                 <div class="form-group">
                     <label>Título de la actividad / lugar</label>
-                    <input type="text" id="ev-title" required placeholder="Ej: Tren bala Tokio ➔ Kioto">
+                    <input type="text" id="ev-title" required placeholder="Ej: Vuelo Buenos Aires - Tokio / Tren bala">
                 </div>
                 
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
-                        <label>Fecha del Evento</label>
-                        <input type="date" id="ev-date" required value="2027-09-21">
+                        <label>Fecha Salida / Inicio</label>
+                        <input type="date" id="ev-date" required value="2027-08-28" onchange="calculateDuration()">
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label>Hora Inicio (0-23)</label>
-                        <input type="number" id="ev-hour" min="0" max="23" required value="8">
+                        <label>Hora Salida (0-23)</label>
+                        <input type="number" id="ev-hour" min="0" max="23" required value="0" onchange="calculateDuration()">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;" id="arrival-fields-group">
+                    <div class="form-group" style="flex:1;">
+                        <label>Fecha Llegada / Fin</label>
+                        <input type="date" id="ev-end-date" value="2027-08-29" onchange="calculateDuration()">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Hora Llegada (0-23)</label>
+                        <input type="number" id="ev-end-hour" min="0" max="23" value="19" onchange="calculateDuration()">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
-                        <label>Duración (Horas)</label>
-                        <input type="number" id="ev-duration" min="1" max="12" required value="3">
+                        <label>Duración Calculada (Horas)</label>
+                        <input type="number" id="ev-duration" min="1" max="120" required value="31">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Tipo de Evento</label>
                         <select id="ev-type" onchange="toggleLocationFields()">
+                            <option value="transporte">Transporte / Traslado / Vuelo</option>
                             <option value="actividad">Actividad / Visita</option>
-                            <option value="transporte">Transporte / Traslado</option>
                             <option value="show">Show / Concierto</option>
                             <option value="sleep">Descanso</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="form-group" id="single-location-group">
+                <div class="form-group" id="single-location-group" style="display:none;">
                     <label>Ubicación / Dirección</label>
                     <input type="text" id="ev-location" placeholder="Ej: Gion, Kioto">
                 </div>
 
-                <div style="display: none; gap: 0.5rem;" id="transport-location-group">
+                <div style="display: flex; gap: 0.5rem;" id="transport-location-group">
                     <div class="form-group" style="flex:1;">
                         <label>Origen</label>
-                        <input type="text" id="ev-origin" placeholder="Ej: Estación Tokio">
+                        <input type="text" id="ev-origin" placeholder="Ej: Aeropuerto Ezeiza">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Destino</label>
-                        <input type="text" id="ev-destination" placeholder="Ej: Fujitaya Kyoto">
+                        <input type="text" id="ev-destination" placeholder="Ej: Aeropuerto Haneda">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Costo Estimado (USD)</label>
-                    <input type="number" id="ev-cost" placeholder="Ej: 100">
+                    <input type="number" id="ev-cost" placeholder="Ej: 2000">
                 </div>
                 <div class="form-group">
                     <label>Detalles / Links / Notas</label>
-                    <textarea id="ev-details" rows="3" placeholder="Ej: Salida 08:24hs - Llegada 10:39hs. Asiento lado derecho para ver el Monte Fuji."></textarea>
+                    <textarea id="ev-details" rows="3" placeholder="Ej: Salida 00:20hs Ezeiza. Llegada 19:00hs Haneda. Escala en Dallas."></textarea>
                 </div>
                 <button type="submit" class="btn-add-event" style="width: 100%; justify-content: center;">Guardar Evento</button>
             </form>
@@ -429,7 +440,7 @@
 
     let START_DATE = null;
     let currentWeek = 1;
-    let totalWeeks = 4; // Se calculará dinámicamente según la planilla
+    let totalWeeks = 4;
     let localEvents = [];
     let accommodationsData = [];
     let currentKeyIndex = 0;
@@ -489,6 +500,25 @@
         }
     }
 
+    // --- CÁLCULO DE DURACIÓN PARA VUELOS / EVENTOS LARGOS ---
+    function calculateDuration() {
+        const startDateVal = document.getElementById('ev-date').value;
+        const startHourVal = parseInt(document.getElementById('ev-hour').value) || 0;
+        const endDateVal = document.getElementById('ev-end-date').value;
+        const endHourVal = parseInt(document.getElementById('ev-end-hour').value) || 0;
+
+        if (startDateVal && endDateVal) {
+            const start = new Date(`${startDateVal}T${startHourVal.toString().padStart(2, '0')}:00:00`);
+            const end = new Date(`${endDateVal}T${endHourVal.toString().padStart(2, '0')}:00:00`);
+
+            const diffMs = end - start;
+            if (diffMs > 0) {
+                const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+                document.getElementById('ev-duration').value = diffHours;
+            }
+        }
+    }
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -536,7 +566,6 @@
         return `${year}-${month}-${day}`;
     }
 
-    // --- CÁLCULO DINÁMICO DE SEMANAS E INICIO DEL VIAJE ---
     function autoDetectTripBounds() {
         let allDates = [];
         localEvents.forEach(e => { let d = parseDateStr(e.date); if (d) allDates.push(d); });
@@ -706,6 +735,7 @@
                 if (occupiedCells[hour][dayIdx]) continue;
 
                 let currentDateISO = formatDateToISO(dates[dayIdx]);
+                
                 const ev = events.find(e => {
                     let evDateObj = parseDateStr(e.date);
                     return evDateObj && formatDateToISO(evDateObj) === currentDateISO && e.startHour === hour;
@@ -713,7 +743,22 @@
 
                 if (ev) {
                     const duration = parseInt(ev.durationHours) || 1;
-                    for (let h = hour; h < hour + duration && h < 24; h++) occupiedCells[h][dayIdx] = true;
+                    let remainingHours = duration;
+
+                    let curDay = dayIdx;
+                    let curHour = hour;
+
+                    while (remainingHours > 0 && curDay < 7) {
+                        occupiedCells[curHour][curDay] = true;
+                        remainingHours--;
+                        curHour++;
+                        if (curHour >= 24) {
+                            curHour = 0;
+                            curDay++;
+                        }
+                    }
+
+                    let visualSpan = Math.min(duration, 24 - hour);
 
                     let locText = ev.type === 'transporte' ? `${ev.origin || ''} ➔ ${ev.destination || ''}` : (ev.location || '');
                     if (ev.type === 'transporte' && (!ev.origin && !ev.destination)) locText = ev.location || '';
@@ -723,10 +768,12 @@
                     let safeLoc = (locText || '').replace(/'/g, "\\'");
                     let safeCost = (ev.cost || '').replace(/'/g, "\\'");
 
-                    rowHTML += `<td rowspan="${duration}">
-                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}', '${safeLoc}', '${safeCost}', '${ev.date}')">
-                            <div><b>${ev.title}</b></div>
-                            <div style="font-size:0.7rem; opacity:0.85;">${duration}h | ${locText}</div>
+                    let arrivalInfo = (ev.endDate && ev.endHour !== undefined) ? `<br>🛬 Llegada: ${ev.endDate} ${ev.endHour.toString().padStart(2,'0')}:00` : '';
+
+                    rowHTML += `<td rowspan="${visualSpan}">
+                        <div class="event-block event-${ev.type || 'actividad'}" onclick="showModal('${safeTitle}', '${safeDetails}${arrivalInfo}', '${safeLoc}', '${safeCost}', '${ev.date}')">
+                            <div><b>✈️ ${ev.title}</b></div>
+                            <div style="font-size:0.7rem; opacity:0.85;">${duration}h totales | ${locText}</div>
                         </div>
                     </td>`;
                 } else {
@@ -927,6 +974,8 @@
             title: document.getElementById('ev-title').value,
             date: document.getElementById('ev-date').value,
             startHour: parseInt(document.getElementById('ev-hour').value),
+            endDate: document.getElementById('ev-end-date').value || document.getElementById('ev-date').value,
+            endHour: parseInt(document.getElementById('ev-end-hour').value) || parseInt(document.getElementById('ev-hour').value),
             durationHours: parseInt(document.getElementById('ev-duration').value),
             type: type,
             location: document.getElementById('ev-location').value,
@@ -944,7 +993,7 @@
         fetch(SCRIPT_URL, {
             method: "POST",
             body: JSON.stringify(newEv)
-        }).then(res => console.log("Evento guardado")).catch(err => console.error("Error al guardar:", err));
+        }).then(res => console.log("Evento guardado correctamente.")).catch(err => console.error("Error al guardar:", err));
 
         closeModal('addModal');
         document.getElementById('addEventForm').reset();
@@ -968,7 +1017,7 @@
         }
     }
 
-    // --- BORRADO LIMPIO DE EVENTOS (SIN VOLVER A LAS 00:00HS) ---
+    // --- BORRADO LIMPIO DE EVENTOS ---
     async function deleteEvent(title, start) {
         if (!confirm(`¿Estás seguro de que deseas eliminar "${title}"?`)) return;
 
