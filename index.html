@@ -157,14 +157,13 @@
                 <button class="btn-add-event" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Añadir Evento</button>
             </div>
 
-            <!-- BANDEJA DE EVENTOS PENDIENTES DE HORA (OPCIÓN 1) -->
+            <!-- BANDEJA DE EVENTOS PENDIENTES DE HORA -->
             <div class="pending-events-container" id="pending-container">
                 <div class="pending-events-header">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     <span>Actividades sin hora asignada o pendientes</span>
                 </div>
                 <div class="pending-grid" id="pending-grid-list">
-                    <!-- Tarjetas pendientes inyectadas por JS -->
                 </div>
             </div>
 
@@ -215,50 +214,34 @@
         <!-- PESTAÑA 3: RECOMENDACIONES -->
         <section id="reels" class="tab-content">
             <h3>Recomendaciones & Spots Personalizados</h3>
-            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Busca spots de Instagram/TikTok, locales temáticos o lugares específicos:</p>
+            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Spots de Instagram/TikTok, locales temáticos y recomendaciones guardadas:</p>
             
             <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-recom-input" placeholder="Ej: Café temático de Cowboy Bebop, tiendas de vinilos en Akihabara..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
                 <button onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
             </div>
 
-            <div class="zone-filters">
-                <span style="font-size:0.8rem; font-weight:600; align-self:center;">Filtrar Zona:</span>
-                <button class="filter-btn active" onclick="filterByZone('all', 'recom')">Todas</button>
-                <button class="filter-btn" onclick="filterByZone('hokkaido', 'recom')">🏂 Snowboard / Norte</button>
-                <button class="filter-btn" onclick="filterByZone('okinawa', 'recom')">🏖️ Okinawa / Playas</button>
-                <button class="filter-btn" onclick="filterByZone('tokio', 'recom')">Tokio</button>
-                <button class="filter-btn" onclick="filterByZone('kioto', 'recom')">Kioto</button>
-                <button class="filter-btn" onclick="filterByZone('osaka', 'recom')">Osaka</button>
+            <div class="recom-grid" id="recom-container">
+                <p style="color: var(--text-muted);">Cargando recomendaciones...</p>
             </div>
-
-            <div class="recom-grid" id="recom-container"></div>
         </section>
 
         <!-- PESTAÑA 4: SHOWS -->
         <section id="shows" class="tab-content">
             <h3>Cartelera de Shows, Festivales & Conciertos</h3>
-            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Consulta disponibilidad de bandas, artistas o pop-up stores para tus fechas:</p>
+            <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Disponibilidad de bandas, artistas o pop-up stores guardadas:</p>
             
             <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-shows-input" placeholder="Ej: Concierto de The Seatbelts, presentación de ALI, Anime Song Festival..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
                 <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️ Buscar Eventos</button>
             </div>
 
-            <div class="zone-filters">
-                <span style="font-size:0.8rem; font-weight:600; align-self:center;">Filtrar Zona:</span>
-                <button class="filter-btn active" onclick="filterByZone('all', 'shows')">Todas</button>
-                <button class="filter-btn" onclick="filterByZone('hokkaido', 'shows')">🏂 Snowboard / Norte</button>
-                <button class="filter-btn" onclick="filterByZone('okinawa', 'shows')">🏖️ Okinawa / Playas</button>
-                <button class="filter-btn" onclick="filterByZone('tokio', 'shows')">Tokio</button>
-                <button class="filter-btn" onclick="filterByZone('kioto', 'shows')">Kioto</button>
-                <button class="filter-btn" onclick="filterByZone('osaka', 'shows')">Osaka</button>
+            <div class="recom-grid" id="shows-container">
+                <p style="color: var(--text-muted);">Cargando shows...</p>
             </div>
-
-            <div class="recom-grid" id="shows-container"></div>
         </section>
 
-        <!-- PESTAÑA 5: GASTOS (CONVERSOR RÁPIDO & BALANCE DE CUENTAS) -->
+        <!-- PESTAÑA 5: GASTOS -->
         <section id="gastos" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                 <div>
@@ -270,7 +253,6 @@
                 </button>
             </div>
 
-            <!-- BLOQUE CONVERSOR RÁPIDO DÓLAR / YEN -->
             <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
                     <h4 style="color:#166534;"><i class="fa-solid fa-calculator"></i> Conversor Rápido (Yen ⇆ Dólar)</h4>
@@ -474,7 +456,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQi0J-uvXldFXv0YjxCzBVwsSQRhoUatjKEo1KiizmTbUOuZhe2Oxq4U4lcOUtFmVGqQ/exec";
+    // NUEVA URL ACTUALIZADA
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8wLXfEEBj7Zy8rs9iC3Id_2xkyUPaA0Ypv2kvsuEaIrBpE073ZLt6_iBhzyPTyz_ylw/exec";
     let JPY_USD_RATE = 155; 
 
     let START_DATE = null;
@@ -565,6 +548,8 @@
         }
 
         if (tabId === 'gastos') loadExpensesFromSheet();
+        if (tabId === 'reels') loadRecomendacionesFromSheet();
+        if (tabId === 'shows') loadShowsFromSheet();
         if (tabId === 'transporte') {
             setTimeout(() => {
                 if (leafletMap) leafletMap.invalidateSize();
@@ -717,6 +702,49 @@
         }
     }
 
+    /* CARGA AUTOMÁTICA DE RECOMENDACIONES Y SHOWS DESDE SHEETS */
+    async function loadRecomendacionesFromSheet() {
+        const container = document.getElementById('recom-container');
+        try {
+            const res = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                container.innerHTML = data.map(item => `
+                    <div class="recom-card">
+                        <h4>📍 ${item.Titulo || item.title || 'Spot'}</h4>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0.4rem 0;">${item.Detalles || item.details || ''}</p>
+                        ${item.aiDetails ? `<div style="font-size:0.8rem; background:#f0fdf4; color:#166534; padding:0.5rem; border-radius:4px; margin-top:0.4rem;">${item.aiDetails}</div>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<p style="color:var(--text-muted);">No hay recomendaciones guardadas en Sheets aún.</p>`;
+            }
+        } catch(e) {
+            container.innerHTML = `<p style="color:var(--text-muted);">Error al cargar recomendaciones.</p>`;
+        }
+    }
+
+    async function loadShowsFromSheet() {
+        const container = document.getElementById('shows-container');
+        try {
+            const res = await fetch(`${SCRIPT_URL}?sheet=Shows`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                container.innerHTML = data.map(item => `
+                    <div class="recom-card">
+                        <h4>🎟️ ${item.Titulo || item.title || 'Evento'}</h4>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0.4rem 0;">${item.Detalles || item.details || ''}</p>
+                        ${item.aiDetails ? `<div style="font-size:0.8rem; background:#fce7f3; color:#be185d; padding:0.5rem; border-radius:4px; margin-top:0.4rem;">${item.aiDetails}</div>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<p style="color:var(--text-muted);">No hay shows guardados en Sheets aún.</p>`;
+            }
+        } catch(e) {
+            container.innerHTML = `<p style="color:var(--text-muted);">Error al cargar shows.</p>`;
+        }
+    }
+
     function renderHeaderDays() {
         const headerRow = document.getElementById('table-header-days');
         if (!headerRow) return;
@@ -788,7 +816,6 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        // Separar eventos con hora válida de eventos pendientes (Opción 1)
         const validEvents = events.filter(e => e.startHour !== null && e.startHour >= 0 && e.startHour <= 23);
         const pendingEvents = events.filter(e => e.startHour === null || e.startHour < 0 || e.startHour > 23);
         
@@ -940,6 +967,7 @@
         closeModal('eventModal');
         document.getElementById('modalFormHeaderTitle').innerText = "Editar Actividad / Evento";
         
+        // Asignar viejos identificadores para reemplazo en Sheets
         document.getElementById('ev-old-title').value = ev.title;
         document.getElementById('ev-old-date').value = ev.date;
 
@@ -1086,14 +1114,15 @@
         }).join('');
     }
 
+    /* MAPA EN ALFABETO LATINO / INGLÉS (CARTO VOYAGER) */
     function initLeafletMap() {
         if (leafletMap) return;
 
         leafletMap = L.map('leaflet-map').setView(CITY_COORDS.all, 7);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap © CARTO'
         }).addTo(leafletMap);
 
         renderMapMarkers();
