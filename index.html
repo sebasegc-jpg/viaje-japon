@@ -61,23 +61,41 @@
         .pending-meta { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; }
         .pending-btn { background: #f97316; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
 
+        /* TABLA Y FILAS AJUSTADAS PARA QUE NO SE DEFORMEN */
         .schedule-grid-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; overflow-x: auto; max-height: 75vh; overflow-y: auto; }
         .schedule-table { width: 100%; border-collapse: collapse; min-width: 1000px; table-layout: fixed; }
-        .schedule-table th, .schedule-table td { border: 1px solid var(--border); padding: 0; text-align: center; font-size: 0.8rem; vertical-align: top; height: 100%; }
+        .schedule-table th, .schedule-table td { border: 1px solid var(--border); padding: 0; text-align: center; font-size: 0.8rem; vertical-align: top; }
+        .schedule-table tr { height: 38px; max-height: 38px; }
         
-        .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; height: 75px; padding: 0.4rem; }
+        .schedule-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; height: 70px; padding: 0.4rem; }
         .day-header { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
         .day-date { font-weight: 700; color: var(--text-dark); font-size: 0.85rem; }
         .day-stay { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 0.2rem; font-size: 0.7rem; color: #1e40af; font-weight: 600; margin-top: 0.2rem; cursor: pointer; }
 
-        .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; height: 40px; }
+        .time-col { width: 70px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); text-align: center !important; height: 38px; line-height: 38px; }
 
-        .event-block { border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: left; height: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+        .event-block { border-radius: 4px; padding: 0.3rem 0.5rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: left; height: 100%; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; }
         .event-block:hover { transform: scale(1.01); }
-        .event-sleep { background-color: var(--accent-sleep); color: #0369a1; }
-        .event-actividad { background-color: var(--accent-activity); color: #b45309; }
-        .event-transporte { background-color: var(--accent-transport); color: #15803d; }
-        .event-show { background-color: var(--accent-show); color: #be185d; }
+        .event-title-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+        .event-subtitle-line { font-size: 0.7rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .event-sleep { background-color: var(--accent-sleep); color: #0369a1; border-left: 3px solid #0284c7; }
+        .event-actividad { background-color: var(--accent-activity); color: #b45309; border-left: 3px solid #d97706; }
+        .event-transporte { background-color: var(--accent-transport); color: #15803d; border-left: 3px solid #16a34a; }
+        .event-show { background-color: var(--accent-show); color: #be185d; border-left: 3px solid #db2777; }
+
+        /* CONTENEDOR DE RECOMENDACIONES Y SHOWS COMPACTOS (ACORDEÓN) */
+        .compact-accordion-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+        details.compact-item { background: #fff; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; transition: background 0.2s; }
+        details.compact-item[open] { background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        summary.compact-summary { padding: 0.6rem 0.9rem; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; list-style: none; background: #f8fafc; border-bottom: 1px solid transparent; }
+        details.compact-item[open] summary.compact-summary { border-bottom-color: var(--border); background: #f1f5f9; }
+        summary.compact-summary::-webkit-details-marker { display: none; }
+        .summary-title { display: flex; align-items: center; gap: 0.5rem; color: var(--text-dark); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .summary-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+        .compact-content { padding: 0.9rem; font-size: 0.82rem; color: var(--text-dark); line-height: 1.5; }
+        .compact-content p { margin-bottom: 0.5rem; }
+        .compact-content ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
 
         .map-layout { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
         .map-container { flex: 2; min-width: 320px; height: 550px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border); position: relative; z-index: 1; }
@@ -87,9 +105,6 @@
         .timeline-item { padding: 0.8rem; border-left: 3px solid var(--primary); background: #f8fafc; border-radius: 0 6px 6px 0; margin-bottom: 0.8rem; font-size: 0.85rem; }
         .timeline-item h5 { font-size: 0.9rem; color: var(--text-dark); margin-bottom: 4px; }
         .timeline-date { font-size: 0.75rem; color: var(--primary); font-weight: bold; }
-
-        .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .recom-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
 
         .zone-filters { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .filter-btn { background: #f1f5f9; border: 1px solid var(--border); padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-dark); transition: all 0.2s; }
@@ -200,13 +215,8 @@
         <section id="reels" class="tab-content">
             <h3>Recomendaciones & Spots Personalizados</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Spots de Instagram/TikTok, locales temáticos y recomendaciones guardadas:</p>
-            
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
-                <input type="text" id="custom-recom-input" placeholder="Ej: Café temático de Cowboy Bebop, tiendas de vinilos en Akihabara..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
-                <button onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
-            </div>
 
-            <div class="recom-grid" id="recom-container">
+            <div class="compact-accordion-list" id="recom-container">
                 <p style="color: var(--text-muted);">Cargando recomendaciones...</p>
             </div>
         </section>
@@ -214,13 +224,8 @@
         <section id="shows" class="tab-content">
             <h3>Cartelera de Shows, Festivales & Conciertos</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Disponibilidad de bandas, artistas o pop-up stores guardadas:</p>
-            
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
-                <input type="text" id="custom-shows-input" placeholder="Ej: Concierto de The Seatbelts, presentación de ALI, Anime Song Festival..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
-                <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️ Buscar Eventos</button>
-            </div>
 
-            <div class="recom-grid" id="shows-container">
+            <div class="compact-accordion-list" id="shows-container">
                 <p style="color: var(--text-muted);">Cargando shows...</p>
             </div>
         </section>
@@ -434,11 +439,10 @@
         </div>
     </div>
 
-    <!-- Leaflet JS para el Mapa Interactivo -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // URL DE APPS SCRIPT ACTUALIZADA
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxt8GnUlJ9SVgVzjM0593L0rXsDLXcmuZKFCeNBwAxFSW6gg9TwHLRhC_6RZXrUe8MvuA/exec";
     let JPY_USD_RATE = 155; 
 
@@ -472,6 +476,23 @@
         'kioto': [35.0116, 135.7681],
         'osaka': [34.6937, 135.5023]
     };
+
+    // FORMATEADOR DE MARKDOWN A HTML
+    function formatMarkdown(text) {
+        if (!text) return '';
+        let formatted = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/^### (.*$)/gim, '<h4 style="margin: 0.6rem 0 0.3rem 0; color: var(--primary);">$1</h4>')
+            .replace(/^## (.*$)/gim, '<h3 style="margin: 0.8rem 0 0.4rem 0; color: var(--primary);">$1</h3>')
+            .replace(/^\* (.*$)/gim, '<li>$1</li>')
+            .replace(/^(1\.|2\.|3\.|4\.|5\.) (.*$)/gim, '<li>$2</li>');
+
+        if (formatted.includes('<li>')) {
+            formatted = formatted.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+        }
+        return formatted.replace(/\n/g, '<br>');
+    }
 
     async function fetchLiveExchangeRate() {
         try {
@@ -684,19 +705,30 @@
         }
     }
 
+    /* RECOMENDACIONES EN ACORDEÓN COMPACTO */
     async function loadRecomendacionesFromSheet() {
         const container = document.getElementById('recom-container');
         try {
             const res = await fetch(`${SCRIPT_URL}?sheet=Recomendaciones`);
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
-                container.innerHTML = data.map(item => `
-                    <div class="recom-card">
-                        <h4>📍 ${item.Titulo || item.title || 'Spot'}</h4>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0.4rem 0;">${item.Detalles || item.details || ''}</p>
-                        ${item.aiDetails ? `<div style="font-size:0.8rem; background:#f0fdf4; color:#166534; padding:0.5rem; border-radius:4px; margin-top:0.4rem;">${item.aiDetails}</div>` : ''}
-                    </div>
-                `).join('');
+                container.innerHTML = data.map(item => {
+                    const title = item.Titulo || item.title || 'Recomendación';
+                    const rawDetails = item.Detalles || item.details || item.aiDetails || '';
+                    const formattedBody = formatMarkdown(rawDetails);
+                    
+                    return `
+                        <details class="compact-item">
+                            <summary class="compact-summary">
+                                <span class="summary-title">📍 ${title}</span>
+                                <span class="summary-badge">Ver recomendación</span>
+                            </summary>
+                            <div class="compact-content">
+                                ${formattedBody}
+                            </div>
+                        </details>
+                    `;
+                }).join('');
             } else {
                 container.innerHTML = `<p style="color:var(--text-muted);">No hay recomendaciones guardadas en Sheets aún.</p>`;
             }
@@ -705,19 +737,30 @@
         }
     }
 
+    /* SHOWS EN ACORDEÓN COMPACTO */
     async function loadShowsFromSheet() {
         const container = document.getElementById('shows-container');
         try {
             const res = await fetch(`${SCRIPT_URL}?sheet=Shows`);
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
-                container.innerHTML = data.map(item => `
-                    <div class="recom-card">
-                        <h4>🎟️ ${item.Titulo || item.title || 'Evento'}</h4>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0.4rem 0;">${item.Detalles || item.details || ''}</p>
-                        ${item.aiDetails ? `<div style="font-size:0.8rem; background:#fce7f3; color:#be185d; padding:0.5rem; border-radius:4px; margin-top:0.4rem;">${item.aiDetails}</div>` : ''}
-                    </div>
-                `).join('');
+                container.innerHTML = data.map(item => {
+                    const title = item.Titulo || item.title || 'Show / Evento';
+                    const rawDetails = item.Detalles || item.details || item.aiDetails || '';
+                    const formattedBody = formatMarkdown(rawDetails);
+
+                    return `
+                        <details class="compact-item">
+                            <summary class="compact-summary">
+                                <span class="summary-title">🎟️ ${title}</span>
+                                <span class="summary-badge" style="background:#fce7f3; color:#be185d;">Ver cartelera</span>
+                            </summary>
+                            <div class="compact-content">
+                                ${formattedBody}
+                            </div>
+                        </details>
+                    `;
+                }).join('');
             } else {
                 container.innerHTML = `<p style="color:var(--text-muted);">No hay shows guardados en Sheets aún.</p>`;
             }
@@ -792,6 +835,7 @@
         editEventModal();
     }
 
+    /* CONSTRUCCIÓN DE LA GRILLA CORREGIDA (LIMITA ROWSPAN A LAS 24HS DEL DÍA Y MANTIENE ALTURAS FIJAS) */
     function buildGrid(events = []) {
         const tbody = document.getElementById('grid-body');
         if (!tbody) return;
@@ -820,23 +864,15 @@
                 });
 
                 if (ev) {
-                    const duration = parseInt(ev.durationHours) || 1;
-                    let remainingHours = duration;
+                    const rawDuration = parseInt(ev.durationHours) || 1;
+                    
+                    // Limita la cantidad de celdas a ocupar dentro del día actual (máximo 24hs)
+                    let maxHoursInDay = 24 - hour;
+                    let visualSpan = Math.min(rawDuration, maxHoursInDay);
 
-                    let curDay = dayIdx;
-                    let curHour = hour;
-
-                    while (remainingHours > 0 && curDay < 7) {
-                        occupiedCells[curHour][curDay] = true;
-                        remainingHours--;
-                        curHour++;
-                        if (curHour >= 24) {
-                            curHour = 0;
-                            curDay++;
-                        }
+                    for (let h = 0; h < visualSpan; h++) {
+                        occupiedCells[hour + h][dayIdx] = true;
                     }
-
-                    let visualSpan = Math.min(duration, 24 - hour);
 
                     let locText = ev.type === 'transporte' ? `${ev.originLink || ''} ➔ ${ev.destLink || ''}` : (ev.location || '');
                     if (ev.type === 'transporte' && (!ev.originLink && !ev.destLink)) locText = ev.location || '';
@@ -844,10 +880,10 @@
                     let safeTitle = ev.title.replace(/'/g, "\\'");
                     let icon = ev.type === 'transporte' ? '✈️' : (ev.type === 'sleep' ? '🏨' : '📍');
 
-                    rowHTML += `<td rowspan="${visualSpan}">
+                    rowHTML += `<td rowspan="${visualSpan}" style="padding:1px; vertical-align:top; height:${visualSpan * 38}px;">
                         <div class="event-block event-${ev.type || 'actividad'}" onclick="showModalByObject('${safeTitle}', '${ev.date}', ${ev.startHour})">
-                            <div><b>${icon} ${ev.title}</b></div>
-                            <div style="font-size:0.7rem; opacity:0.85;">${duration}h totales | ${locText}</div>
+                            <div class="event-title-line">${icon} ${ev.title}</div>
+                            <div class="event-subtitle-line">${rawDuration}h totales ${locText ? '| ' + locText : ''}</div>
                         </div>
                     </td>`;
                 } else {
@@ -1094,7 +1130,6 @@
         }).join('');
     }
 
-    /* MAPA GRATUITO EN ALFABETO LATINO / INGLÉS (ESRI WORLD STREET MAP) */
     function initLeafletMap() {
         if (leafletMap) return;
 
@@ -1102,7 +1137,7 @@
 
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom'
+            attribution: 'Tiles &copy; Esri'
         }).addTo(leafletMap);
 
         renderMapMarkers();
@@ -1239,22 +1274,6 @@
         }).then(() => loadExpensesFromSheet()).catch(err => console.error(err));
 
         document.getElementById('expense-form').reset();
-    }
-
-    function filterByZone(zone, tab) {
-        const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
-        if (container) {
-            container.innerHTML = `<div class="recom-card"><h4>📍 Zona: ${zone.toUpperCase()}</h4><p>Mostrando recomendaciones para ${zone}...</p></div>`;
-        }
-    }
-
-    function searchCustomAI(tab) {
-        const inputId = tab === 'recom' ? 'custom-recom-input' : 'custom-shows-input';
-        const query = document.getElementById(inputId).value;
-        const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
-        if (container && query) {
-            container.innerHTML = `<div class="recom-card"><h4>🔍 Búsqueda: "${query}"</h4><p>Buscando en tiempo real con Gemini IA...</p></div>`;
-        }
     }
 
     async function initApp() {
