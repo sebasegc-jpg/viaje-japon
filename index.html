@@ -212,7 +212,6 @@
             </div>
         </section>
 
-        <!-- RECOMENDACIONES Y BUSCADOR RESTAURADO -->
         <section id="reels" class="tab-content">
             <h3>Recomendaciones & Spots Personalizados</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Spots de Instagram/TikTok, locales temáticos y recomendaciones guardadas:</p>
@@ -227,7 +226,6 @@
             </div>
         </section>
 
-        <!-- SHOWS Y BUSCADOR RESTAURADO -->
         <section id="shows" class="tab-content">
             <h3>Cartelera de Shows, Festivales & Conciertos</h3>
             <p style="color: var(--text-muted); margin-bottom: 0.8rem;">Disponibilidad de bandas, artistas o pop-up stores guardadas:</p>
@@ -781,23 +779,112 @@
         }
     }
 
-    /* FUNCIÓN RESTAURADA: BÚSQUEDA PERSONALIZADA CON GEMINI / IA */
-    function searchCustomAI(tab) {
+    /* BUSCADOR DINÁMICO: COMPORTAMIENTO COMPLETO Y SEGURO CON APPS SCRIPT Y FALLBACK */
+    async function searchCustomAI(tab) {
         const inputId = tab === 'recom' ? 'custom-recom-input' : 'custom-shows-input';
-        const query = document.getElementById(inputId).value;
+        const queryInput = document.getElementById(inputId);
+        if (!queryInput) return;
+        
+        const query = queryInput.value.trim();
         const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
-        if (container && query) {
+        const sheetName = tab === 'recom' ? 'Recomendaciones' : 'Shows';
+
+        if (!query) {
+            if (tab === 'recom') loadRecomendacionesFromSheet();
+            else loadShowsFromSheet();
+            return;
+        }
+
+        if (container) {
             container.innerHTML = `
                 <details class="compact-item" open>
                     <summary class="compact-summary">
-                        <span class="summary-title">🔍 Búsqueda: "${query}"</span>
-                        <span class="summary-badge">Buscando...</span>
+                        <span class="summary-title">🤖 Consultando: "${query}"</span>
+                        <span class="summary-badge" style="background:#fef3c7; color:#b45309;">Procesando...</span>
                     </summary>
-                    <div class="compact-content">
-                        Buscando recomendaciones e información en tiempo real...
+                    <div class="compact-content" style="color: var(--text-muted); font-style: italic;">
+                        🔍 Buscando información personalizada y eventos relacionados...
                     </div>
                 </details>
             `;
+        }
+
+        try {
+            const resPrompt = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "customQuery",
+                    prompt: query,
+                    tab: tab
+                })
+            });
+            
+            const aiResult = await resPrompt.json();
+
+            if (aiResult && aiResult.response) {
+                const formattedAI = formatMarkdown(aiResult.response);
+                container.innerHTML = `
+                    <details class="compact-item" open style="border: 2px solid var(--primary);">
+                        <summary class="compact-summary" style="background: #fef2f2;">
+                            <span class="summary-title">✨ Respuesta para: "${query}"</span>
+                            <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta en vivo</span>
+                        </summary>
+                        <div class="compact-content">
+                            ${formattedAI}
+                        </div>
+                    </details>
+                `;
+                return;
+            }
+        } catch (err) {
+            console.warn("Realizando filtrado local de respaldo...");
+        }
+
+        try {
+            const res = await fetch(`${SCRIPT_URL}?sheet=${sheetName}`);
+            const data = await res.json();
+
+            if (Array.isArray(data) && data.length > 0) {
+                const qLower = query.toLowerCase();
+                const filtered = data.filter(item => {
+                    const title = (item.Titulo || item.title || '').toLowerCase();
+                    const details = (item.Detalles || item.details || item.aiDetails || '').toLowerCase();
+                    return title.includes(qLower) || details.includes(qLower);
+                });
+
+                if (filtered.length > 0) {
+                    container.innerHTML = filtered.map(item => {
+                        const title = item.Titulo || item.title || 'Resultado';
+                        const rawDetails = item.Detalles || item.details || item.aiDetails || '';
+                        const formattedBody = formatMarkdown(rawDetails);
+                        const icon = tab === 'recom' ? '📍' : '🎟️';
+
+                        return `
+                            <details class="compact-item" open>
+                                <summary class="compact-summary">
+                                    <span class="summary-title">${icon} ${title}</span>
+                                    <span class="summary-badge">Coincidencia guardada</span>
+                                </summary>
+                                <div class="compact-content">
+                                    ${formattedBody}
+                                </div>
+                            </details>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div style="padding: 1rem; background: #fff; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; color: var(--text-muted);">
+                            ⚠️ No se encontraron coincidencias locales ni respuestas automáticas para <strong>"${query}"</strong>.
+                            <br><br>
+                            <button onclick="${tab === 'recom' ? 'loadRecomendacionesFromSheet()' : 'loadShowsFromSheet()'}" style="background: var(--border); border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-weight: 600;">Ver todos los registros</button>
+                        </div>
+                    `;
+                }
+            }
+        } catch (e) {
+            if (container) {
+                container.innerHTML = `<p style="color:var(--text-muted);">Error al realizar la consulta.</p>`;
+            }
         }
     }
 
@@ -867,7 +954,6 @@
         editEventModal();
     }
 
-    /* CONSTRUCCIÓN DE LA GRILLA (SOPORTE DE CONTINUACIÓN MULTIDÍA DENTRO DE LAS 24HS) */
     function buildGrid(events = []) {
         const tbody = document.getElementById('grid-body');
         if (!tbody) return;
@@ -881,7 +967,6 @@
         const dates = getDatesForCurrentWeek();
         let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
 
-        // 1. Mapear celdas ocupadas
         dates.forEach((d, dayIdx) => {
             let currentDateISO = formatDateToISO(d);
 
@@ -915,7 +1000,6 @@
             });
         });
 
-        // 2. Dibujar celdas
         for (let hour = 0; hour < 24; hour++) {
             const tr = document.createElement('tr');
             let rowHTML = `<td class="time-col">${hour.toString().padStart(2, '0')}:00</td>`;
@@ -1210,7 +1294,7 @@
 
         container.innerHTML = combined.map(item => {
             let icon = item.type === 'transporte' ? '✈️' : (item.type === 'hotel' ? '🏨' : '📍');
-            let mapsBtn = item.link.startsWith('http') ? `<a href="${item.link}" target="_blank" style="color:var(--primary); font-weight:bold; font-size:0.75rem;">🗺️️ Maps</a>` : '';
+            let mapsBtn = item.link.startsWith('http') ? `<a href="${item.link}" target="_blank" style="color:var(--primary); font-weight:bold; font-size:0.75rem;">🗺 Maps</a>` : '';
 
             return `
                 <div class="timeline-item">
