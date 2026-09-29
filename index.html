@@ -465,6 +465,7 @@
     let traveler2 = localStorage.getItem('traveler2') || 'Tú';
 
     let currentModalEventObj = null;
+    let currentKeyIndex = 0;
 
     let leafletMap = null;
     let mapMarkers = [];
@@ -486,6 +487,21 @@
         'kioto': [35.0116, 135.7681],
         'osaka': [34.6937, 135.5023]
     };
+
+    // OBTENER API KEYS GUARDADAS
+    function getApiKeys() {
+        let raw = localStorage.getItem('GEMINI_API_KEYS') || localStorage.getItem('GEMINI_API_KEY');
+        if (!raw) {
+            raw = prompt("Ingresá tus API Keys de Gemini (separadas por coma):");
+            if (raw) {
+                raw = raw.trim();
+                localStorage.setItem('GEMINI_API_KEYS', raw);
+            } else {
+                return [];
+            }
+        }
+        return raw.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    }
 
     // FORMATEADOR DE MARKDOWN A HTML
     function formatMarkdown(text) {
@@ -779,112 +795,121 @@
         }
     }
 
-    /* BUSCADOR DINÁMICO: COMPORTAMIENTO COMPLETO Y SEGURO CON APPS SCRIPT Y FALLBACK */
-    async function searchCustomAI(tab) {
-        const inputId = tab === 'recom' ? 'custom-recom-input' : 'custom-shows-input';
-        const queryInput = document.getElementById(inputId);
-        if (!queryInput) return;
+    /* BUSCADOR CON CONSULTA DIRECTA A GEMINI ROTANDO SUS 3 CLAVES */
+    async function searchCustomAI(type) {
+        const isShow = type === 'shows';
+        const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
+        const containerId = isShow ? 'shows-container' : 'recom-container';
+        const inputEl = document.getElementById(inputId);
         
-        const query = queryInput.value.trim();
-        const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
-        const sheetName = tab === 'recom' ? 'Recomendaciones' : 'Shows';
+        if (!inputEl) return;
+        const userQuery = inputEl.value.trim();
 
-        if (!query) {
-            if (tab === 'recom') loadRecomendacionesFromSheet();
-            else loadShowsFromSheet();
+        if (!userQuery) {
+            alert("Escribí lo que querés consultar (ej: spots en Nagano en otoño, The Seatbelts...).");
             return;
         }
 
-        if (container) {
-            container.innerHTML = `
-                <details class="compact-item" open>
-                    <summary class="compact-summary">
-                        <span class="summary-title">🤖 Consultando: "${query}"</span>
-                        <span class="summary-badge" style="background:#fef3c7; color:#b45309;">Procesando...</span>
+        const container = document.getElementById(containerId);
+        
+        // Indicador de carga
+        const loadingCard = document.createElement('div');
+        loadingCard.id = 'temp-loading-card';
+        loadingCard.style.cssText = "padding:1rem; background:#fff; border:1px solid var(--border); border-radius:6px; margin-bottom:1rem; color:var(--text-muted); font-style:italic;";
+        loadingCard.innerHTML = `🔎 Consultando a Gemini sobre "${userQuery}"...`;
+        container.prepend(loadingCard);
+
+        const keys = getApiKeys();
+        if (!keys || keys.length === 0) {
+            const loadingEl = document.getElementById('temp-loading-card');
+            if (loadingEl) loadingEl.remove();
+            alert("No hay API Keys guardadas.");
+            return;
+        }
+
+        let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ') || "Tokio, Kioto, Osaka, Nagano";
+
+        const promptText = `Eres un guía experto en turismo, cultura pop y espectáculos en Japón. 
+        El usuario viaja por (${cities}) y busca información específica sobre: "${userQuery}".
+        
+        Instrucciones:
+        1. Brinda datos concretos, spots recomendados, eventos o recomendaciones sobre esa consulta puntual.
+        2. Responde en español con formato Markdown claro y estructurado (listas, negritas).`;
+
+        let resultText = "";
+
+        for (let i = 0; i < keys.length; i++) {
+            const activeKey = keys[(currentKeyIndex + i) % keys.length];
+            
+            const endpoints = [
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(activeKey)}`
+            ];
+
+            for (let url of endpoints) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                        resultText = data.candidates[0].content.parts[0].text;
+                        currentKeyIndex = (currentKeyIndex + i) % keys.length;
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`Error con clave ${i + 1}, reintentando...`);
+                }
+            }
+
+            if (resultText) break;
+        }
+
+        const loadingEl = document.getElementById('temp-loading-card');
+        if (loadingEl) loadingEl.remove();
+
+        if (resultText) {
+            const formattedBody = formatMarkdown(resultText);
+            
+            const newAccordion = `
+                <details class="compact-item" open style="border: 2px solid var(--primary); margin-bottom:0.8rem;">
+                    <summary class="compact-summary" style="background: #fef2f2;">
+                        <span class="summary-title">✨ 🎯 Búsqueda: ${userQuery}</span>
+                        <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta IA en vivo</span>
                     </summary>
-                    <div class="compact-content" style="color: var(--text-muted); font-style: italic;">
-                        🔍 Buscando información personalizada y eventos relacionados...
+                    <div class="compact-content">
+                        ${formattedBody}
                     </div>
                 </details>
             `;
-        }
 
+            container.innerHTML = newAccordion + container.innerHTML;
+            inputEl.value = '';
+
+            saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
+        } else {
+            alert("Todas las API Keys de Gemini fallaron o agotaron cuota por un momento. Intenta nuevamente en 1 minuto.");
+        }
+    }
+
+    async function saveCustomRecommendationToSheet(title, text, sheetName) {
         try {
-            const resPrompt = await fetch(SCRIPT_URL, {
-                method: "POST",
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: "customQuery",
-                    prompt: query,
-                    tab: tab
+                    sheet: sheetName,
+                    title: title,
+                    details: text,
+                    aiDetails: text
                 })
             });
-            
-            const aiResult = await resPrompt.json();
-
-            if (aiResult && aiResult.response) {
-                const formattedAI = formatMarkdown(aiResult.response);
-                container.innerHTML = `
-                    <details class="compact-item" open style="border: 2px solid var(--primary);">
-                        <summary class="compact-summary" style="background: #fef2f2;">
-                            <span class="summary-title">✨ Respuesta para: "${query}"</span>
-                            <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta en vivo</span>
-                        </summary>
-                        <div class="compact-content">
-                            ${formattedAI}
-                        </div>
-                    </details>
-                `;
-                return;
-            }
         } catch (err) {
-            console.warn("Realizando filtrado local de respaldo...");
-        }
-
-        try {
-            const res = await fetch(`${SCRIPT_URL}?sheet=${sheetName}`);
-            const data = await res.json();
-
-            if (Array.isArray(data) && data.length > 0) {
-                const qLower = query.toLowerCase();
-                const filtered = data.filter(item => {
-                    const title = (item.Titulo || item.title || '').toLowerCase();
-                    const details = (item.Detalles || item.details || item.aiDetails || '').toLowerCase();
-                    return title.includes(qLower) || details.includes(qLower);
-                });
-
-                if (filtered.length > 0) {
-                    container.innerHTML = filtered.map(item => {
-                        const title = item.Titulo || item.title || 'Resultado';
-                        const rawDetails = item.Detalles || item.details || item.aiDetails || '';
-                        const formattedBody = formatMarkdown(rawDetails);
-                        const icon = tab === 'recom' ? '📍' : '🎟️';
-
-                        return `
-                            <details class="compact-item" open>
-                                <summary class="compact-summary">
-                                    <span class="summary-title">${icon} ${title}</span>
-                                    <span class="summary-badge">Coincidencia guardada</span>
-                                </summary>
-                                <div class="compact-content">
-                                    ${formattedBody}
-                                </div>
-                            </details>
-                        `;
-                    }).join('');
-                } else {
-                    container.innerHTML = `
-                        <div style="padding: 1rem; background: #fff; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; color: var(--text-muted);">
-                            ⚠️ No se encontraron coincidencias locales ni respuestas automáticas para <strong>"${query}"</strong>.
-                            <br><br>
-                            <button onclick="${tab === 'recom' ? 'loadRecomendacionesFromSheet()' : 'loadShowsFromSheet()'}" style="background: var(--border); border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-weight: 600;">Ver todos los registros</button>
-                        </div>
-                    `;
-                }
-            }
-        } catch (e) {
-            if (container) {
-                container.innerHTML = `<p style="color:var(--text-muted);">Error al realizar la consulta.</p>`;
-            }
+            console.warn('Error al guardar recomendación en Google Sheets:', err);
         }
     }
 
