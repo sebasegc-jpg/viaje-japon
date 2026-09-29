@@ -54,6 +54,15 @@
         .btn-add-event { background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 0.375rem; cursor: pointer; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
         .btn-add-event:hover { background: var(--primary-hover); }
 
+        /* Bandeja de Eventos Pendientes / Sin Hora */
+        .pending-events-container { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; display: none; }
+        .pending-events-header { font-weight: 700; color: #c2410c; margin-bottom: 0.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+        .pending-grid { display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem; }
+        .pending-card { background: #ffffff; border: 1px solid #ffedd5; border-radius: 0.375rem; padding: 0.6rem 0.8rem; min-width: 220px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .pending-title { font-weight: 600; font-size: 0.85rem; color: var(--text-dark); margin-bottom: 0.2rem; }
+        .pending-meta { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .pending-btn { background: #f97316; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+
         /* Tabla 24hs */
         .schedule-grid-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; overflow-x: auto; max-height: 75vh; overflow-y: auto; }
         .schedule-table { width: 100%; border-collapse: collapse; min-width: 1000px; table-layout: fixed; }
@@ -146,6 +155,17 @@
                     </div>
                 </div>
                 <button class="btn-add-event" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Añadir Evento</button>
+            </div>
+
+            <!-- BANDEJA DE EVENTOS PENDIENTES DE HORA (OPCIÓN 1) -->
+            <div class="pending-events-container" id="pending-container">
+                <div class="pending-events-header">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Actividades sin hora asignada o pendientes</span>
+                </div>
+                <div class="pending-grid" id="pending-grid-list">
+                    <!-- Tarjetas pendientes inyectadas por JS -->
+                </div>
             </div>
 
             <div class="schedule-grid-container">
@@ -385,25 +405,25 @@
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Hora Salida (0-23)</label>
-                        <input type="number" id="ev-hour" min="0" max="23" required value="0" onchange="calculateDuration()">
+                        <input type="number" id="ev-hour" min="0" max="23" required value="8" onchange="calculateDuration()">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 0.5rem;" id="arrival-fields-group">
                     <div class="form-group" style="flex:1;">
                         <label>Fecha Llegada / Fin</label>
-                        <input type="date" id="ev-end-date" value="2027-08-29" onchange="calculateDuration()">
+                        <input type="date" id="ev-end-date" value="2027-08-28" onchange="calculateDuration()">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Hora Llegada (0-23)</label>
-                        <input type="number" id="ev-end-hour" min="0" max="23" value="19" onchange="calculateDuration()">
+                        <input type="number" id="ev-end-hour" min="0" max="23" value="10" onchange="calculateDuration()">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
                         <label>Duración Calculada (Horas)</label>
-                        <input type="number" id="ev-duration" min="1" max="120" required value="31">
+                        <input type="number" id="ev-duration" min="1" max="120" required value="2">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Tipo de Evento</label>
@@ -454,7 +474,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxe9NoJMcK7EAfkdwaQ8kPKXm37e6eIknN1wPqG-uvT0ytmdO5ZyzYndxUcpuShH5oVBg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQi0J-uvXldFXv0YjxCzBVwsSQRhoUatjKEo1KiizmTbUOuZhe2Oxq4U4lcOUtFmVGqQ/exec";
     let JPY_USD_RATE = 155; 
 
     let START_DATE = null;
@@ -675,7 +695,8 @@
                 localEvents = data.map(row => {
                     const title = row.Titulo || row.title || '';
                     const date = row.Dia || row.date || '';
-                    const startHour = parseInt(row.HoraInicio !== undefined ? row.HoraInicio : row.startHour) || 0;
+                    const rawStart = row.HoraInicio !== undefined ? row.HoraInicio : row.startHour;
+                    const startHour = (rawStart !== "" && rawStart !== null && rawStart !== undefined && !isNaN(parseInt(rawStart))) ? parseInt(rawStart) : null;
                     const durationHours = parseInt(row.DuracionHoras || row.durationHours) || 1;
                     const type = row.Tipo || row.type || 'actividad';
                     const location = row.Ubicacion || row.location || '';
@@ -686,7 +707,7 @@
                     const originLink = row.OrigenLink || row.originLink || '';
                     const destLink = row.DestinoLink || row.destLink || '';
                     const endDate = row.FechaLlegada || row.endDate || date;
-                    const endHour = row.HoraLlegada !== undefined ? parseInt(row.HoraLlegada) : startHour;
+                    const endHour = row.HoraLlegada !== undefined && row.HoraLlegada !== "" ? parseInt(row.HoraLlegada) : (startHour !== null ? startHour : 0);
 
                     return { title, date, startHour, durationHours, type, location, cost, details, aiDetails, bookingCode, originLink, destLink, endDate, endHour };
                 }).filter(e => e.title !== '');
@@ -729,10 +750,50 @@
         headerRow.innerHTML = html;
     }
 
+    function renderPendingEvents(pendingEvents) {
+        const container = document.getElementById('pending-container');
+        const list = document.getElementById('pending-grid-list');
+        if (!container || !list) return;
+
+        if (pendingEvents.length === 0) {
+            container.style.display = 'none';
+            list.innerHTML = '';
+            return;
+        }
+
+        container.style.display = 'block';
+        list.innerHTML = pendingEvents.map(ev => {
+            const safeTitle = ev.title.replace(/'/g, "\\'");
+            return `
+                <div class="pending-card">
+                    <div class="pending-title">📍 ${ev.title}</div>
+                    <div class="pending-meta">Fecha: ${ev.date || 'Sin fecha'} | Hora: Pendiente</div>
+                    <button class="pending-btn" onclick="editPendingEvent('${safeTitle}', '${ev.date}')">
+                        ✏️ Asignar Hora / Editar
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function editPendingEvent(title, date) {
+        const ev = localEvents.find(e => e.title === title && e.date === date);
+        if (!ev) return;
+        currentModalEventObj = ev;
+        editEventModal();
+    }
+
     function buildGrid(events = []) {
         const tbody = document.getElementById('grid-body');
         if (!tbody) return;
         tbody.innerHTML = '';
+
+        // Separar eventos con hora válida de eventos pendientes (Opción 1)
+        const validEvents = events.filter(e => e.startHour !== null && e.startHour >= 0 && e.startHour <= 23);
+        const pendingEvents = events.filter(e => e.startHour === null || e.startHour < 0 || e.startHour > 23);
+        
+        renderPendingEvents(pendingEvents);
+
         const dates = getDatesForCurrentWeek();
         let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
 
@@ -745,7 +806,7 @@
 
                 let currentDateISO = formatDateToISO(dates[dayIdx]);
                 
-                const ev = events.find(e => {
+                const ev = validEvents.find(e => {
                     let evDateObj = parseDateStr(e.date);
                     return evDateObj && formatDateToISO(evDateObj) === currentDateISO && e.startHour === hour;
                 });
@@ -840,7 +901,7 @@
 
         document.getElementById('modalBody').innerHTML = `
             ${bookingHTML}
-            <p><b>Salida / Inicio:</b> ${ev.date} ${ev.startHour}:00hs</p>
+            <p><b>Salida / Inicio:</b> ${ev.date} ${ev.startHour !== null ? ev.startHour : 'Pendiente'}:00hs</p>
             ${arrivalInfo}
             <p><b>Duración:</b> ${ev.durationHours} horas</p>
             <p><b>Costo estimado:</b> ${ev.cost ? '$' + ev.cost + ' USD' : 'Gratis / N/A'}</p>
@@ -884,10 +945,10 @@
 
         document.getElementById('ev-title').value = ev.title;
         document.getElementById('ev-date').value = ev.date;
-        document.getElementById('ev-hour').value = ev.startHour;
+        document.getElementById('ev-hour').value = ev.startHour !== null ? ev.startHour : 8;
         document.getElementById('ev-end-date').value = ev.endDate || ev.date;
-        document.getElementById('ev-end-hour').value = ev.endHour || ev.startHour;
-        document.getElementById('ev-duration').value = ev.durationHours;
+        document.getElementById('ev-end-hour').value = ev.endHour !== null ? ev.endHour : 10;
+        document.getElementById('ev-duration').value = ev.durationHours || 2;
         document.getElementById('ev-type').value = ev.type || 'actividad';
         document.getElementById('ev-booking-code').value = ev.bookingCode || '';
         document.getElementById('ev-location').value = ev.location || '';
@@ -998,12 +1059,13 @@
         localEvents.forEach(e => {
             let dObj = parseDateStr(e.date);
             let link = e.location || e.originLink || e.destLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.title + ', Japan')}`;
+            let timeStr = e.startHour !== null ? `${e.startHour}:00hs` : 'Hora pendiente';
             combined.push({
                 type: e.type,
                 title: e.title,
                 dateStr: e.date,
                 dateObj: dObj,
-                details: `${e.startHour}:00hs | ${e.details || ''}`,
+                details: `${timeStr} | ${e.details || ''}`,
                 link: link
             });
         });
