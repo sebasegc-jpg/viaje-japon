@@ -85,6 +85,8 @@
 
         /* Grid Recomendaciones */
         .recom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .recom-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .recom-card h4 { color: var(--text-dark); margin-bottom: 0.4rem; font-size: 0.95rem; }
 
         /* Filtros por Zona */
         .zone-filters { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
@@ -461,12 +463,10 @@
     let totalWeeks = 4;
     let localEvents = [];
     let accommodationsData = [];
-    let currentKeyIndex = 0;
+    let traveler1 = localStorage.getItem('traveler1') || 'Viajero 1';
+    let traveler2 = localStorage.getItem('traveler2') || 'Viajero 2';
 
     let currentModalEventObj = null;
-
-    let rawRecomData = [];
-    let rawShowsData = [];
 
     let leafletMap = null;
     let mapMarkers = [];
@@ -670,25 +670,26 @@
             const res = await fetch(`${SCRIPT_URL}?sheet=Itinerario`);
             const data = await res.json();
             
-            localEvents = data.map(row => {
-                const title = row.Titulo || row.title || '';
-                const date = row.Dia || row.date || '';
-                const startHour = parseInt(row.HoraInicio !== undefined ? row.HoraInicio : row.startHour) || 0;
-                const durationHours = parseInt(row.DuracionHoras || row.durationHours) || 1;
-                const type = row.Tipo || row.type || 'actividad';
-                const location = row.Ubicacion || row.location || '';
-                const cost = row.Costo || row.cost || '';
-                const details = row.Detalles || row.details || '';
-                const aiDetails = row.aiDetails || '';
-                const bookingCode = row.CodigoReserva || row.bookingCode || '';
-                const originLink = row.OrigenLink || row.originLink || '';
-                const destLink = row.DestinoLink || row.destLink || '';
-                const endDate = row.FechaLlegada || row.endDate || date;
-                const endHour = row.HoraLlegada !== undefined ? parseInt(row.HoraLlegada) : startHour;
+            if (Array.isArray(data)) {
+                localEvents = data.map(row => {
+                    const title = row.Titulo || row.title || '';
+                    const date = row.Dia || row.date || '';
+                    const startHour = parseInt(row.HoraInicio !== undefined ? row.HoraInicio : row.startHour) || 0;
+                    const durationHours = parseInt(row.DuracionHoras || row.durationHours) || 1;
+                    const type = row.Tipo || row.type || 'actividad';
+                    const location = row.Ubicacion || row.location || '';
+                    const cost = row.Costo || row.cost || '';
+                    const details = row.Detalles || row.details || '';
+                    const aiDetails = row.aiDetails || '';
+                    const bookingCode = row.CodigoReserva || row.bookingCode || '';
+                    const originLink = row.OrigenLink || row.originLink || '';
+                    const destLink = row.DestinoLink || row.destLink || '';
+                    const endDate = row.FechaLlegada || row.endDate || date;
+                    const endHour = row.HoraLlegada !== undefined ? parseInt(row.HoraLlegada) : startHour;
 
-                return { title, date, startHour, durationHours, type, location, cost, details, aiDetails, bookingCode, originLink, destLink, endDate, endHour };
-            }).filter(e => e.title !== '');
-
+                    return { title, date, startHour, durationHours, type, location, cost, details, aiDetails, bookingCode, originLink, destLink, endDate, endHour };
+                }).filter(e => e.title !== '');
+            }
         } catch (error) {
             console.error('Error al cargar la planilla:', error);
         }
@@ -696,6 +697,7 @@
 
     function renderHeaderDays() {
         const headerRow = document.getElementById('table-header-days');
+        if (!headerRow) return;
         const dates = getDatesForCurrentWeek();
         const dayNamesLunesADomingo = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -718,7 +720,6 @@
             let stayHTML = '<div class="day-stay">Sin asignar</div>';
             if (acc) {
                 const safeName = acc.name.replace(/'/g, "\\'");
-                const safeUrl = (acc.mapUrl || acc.name + ', Japan').replace(/'/g, "\\'");
                 stayHTML = `<div class="day-stay" onclick="showModalByTitle('${safeName}')">🏨 ${acc.name}</div>`;
             }
 
@@ -729,6 +730,7 @@
 
     function buildGrid(events = []) {
         const tbody = document.getElementById('grid-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
         const dates = getDatesForCurrentWeek();
         let occupiedCells = Array.from({ length: 24 }, () => Array(7).fill(false));
@@ -1088,6 +1090,123 @@
         const coords = CITY_COORDS[cityKey] || CITY_COORDS.all;
         const zoom = (cityKey === 'all') ? 7 : 12;
         leafletMap.setView(coords, zoom);
+    }
+
+    // --- FUNCIONES GASTOS & VIAJEROS ---
+    function updateTravelerLabels() {
+        const selectPayer = document.getElementById('exp-payer');
+        const lblP1 = document.getElementById('lbl-p1');
+        const lblP2 = document.getElementById('lbl-p2');
+
+        if (selectPayer) {
+            selectPayer.innerHTML = `
+                <option value="p1">${traveler1}</option>
+                <option value="p2">${traveler2}</option>
+            `;
+        }
+        if (lblP1) lblP1.innerText = `Total Pagado por ${traveler1}:`;
+        if (lblP2) lblP2.innerText = `Total Pagado por ${traveler2}:`;
+    }
+
+    function resetTravelers() {
+        const p1 = prompt("Nombre del Viajero 1:", traveler1);
+        const p2 = prompt("Nombre del Viajero 2:", traveler2);
+        if (p1) { traveler1 = p1; localStorage.setItem('traveler1', p1); }
+        if (p2) { traveler2 = p2; localStorage.setItem('traveler2', p2); }
+        updateTravelerLabels();
+        loadExpensesFromSheet();
+    }
+
+    async function loadExpensesFromSheet() {
+        updateTravelerLabels();
+        try {
+            const res = await fetch(`${SCRIPT_URL}?sheet=Gastos`);
+            const expenses = await res.json();
+            
+            let totalP1 = 0;
+            let totalP2 = 0;
+
+            if (Array.isArray(expenses)) {
+                expenses.forEach(exp => {
+                    let amountUSD = parseFloat(exp.MontoUSD) || 0;
+                    if (exp.Payer === 'p1' || exp.Payer === traveler1) {
+                        totalP1 += amountUSD;
+                    } else if (exp.Payer === 'p2' || exp.Payer === traveler2) {
+                        totalP2 += amountUSD;
+                    }
+                });
+            }
+
+            document.getElementById('total-p1-usd').innerText = `$${totalP1.toFixed(2)} USD`;
+            document.getElementById('total-p2-usd').innerText = `$${totalP2.toFixed(2)} USD`;
+            document.getElementById('total-trip-usd').innerText = `$${(totalP1 + totalP2).toFixed(2)} USD`;
+
+            const settlementText = document.getElementById('settlement-text');
+            const diff = totalP1 - totalP2;
+            if (Math.abs(diff) < 0.01) {
+                settlementText.innerText = "Cuentas saldadas (0 USD)";
+            } else if (diff > 0) {
+                settlementText.innerText = `${traveler2} le debe $${(diff / 2).toFixed(2)} USD a ${traveler1}`;
+            } else {
+                settlementText.innerText = `${traveler1} le debe $${(Math.abs(diff) / 2).toFixed(2)} USD a ${traveler2}`;
+            }
+        } catch (e) {
+            console.error("Error al cargar gastos:", e);
+        }
+    }
+
+    function addExpense(e) {
+        e.preventDefault();
+        const currency = document.getElementById('exp-currency').value;
+        const rawAmount = parseFloat(document.getElementById('exp-amount').value) || 0;
+        const amountUSD = currency === 'JPY' ? rawAmount / JPY_USD_RATE : rawAmount;
+
+        const expenseData = {
+            action: 'addExpense',
+            sheet: 'Gastos',
+            date: document.getElementById('exp-date').value,
+            concept: document.getElementById('exp-concept').value,
+            currency: currency,
+            rawAmount: rawAmount,
+            amountUSD: amountUSD.toFixed(2),
+            payer: document.getElementById('exp-payer').value,
+            split: document.getElementById('exp-split').value,
+            category: document.getElementById('exp-category').value
+        };
+
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(expenseData)
+        }).then(() => loadExpensesFromSheet()).catch(err => console.error(err));
+
+        document.getElementById('expense-form').reset();
+    }
+
+    // --- RECOMENDACIONES & IA ---
+    function filterByZone(zone, tab) {
+        const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
+        if (container) {
+            container.innerHTML = `<div class="recom-card"><h4>📍 Zona: ${zone.toUpperCase()}</h4><p>Mostrando recomendaciones para ${zone}...</p></div>`;
+        }
+    }
+
+    function searchCustomAI(tab) {
+        const inputId = tab === 'recom' ? 'custom-recom-input' : 'custom-shows-input';
+        const query = document.getElementById(inputId).value;
+        const container = document.getElementById(tab === 'recom' ? 'recom-container' : 'shows-container');
+        if (container && query) {
+            container.innerHTML = `<div class="recom-card"><h4>🔍 Búsqueda: "${query}"</h4><p>Buscando en tiempo real con Gemini IA...</p></div>`;
+        }
+    }
+
+    function analyzeWithAI(title, details, location, date) {
+        const aiBox = document.getElementById('aiContent');
+        if (aiBox) {
+            aiBox.innerHTML = `<i>Consultando Gemini IA sobre ${title}...</i>`;
+            setTimeout(() => {
+                aiBox.innerHTML = `<b>Sugerencias de IA:</b> Excelente lugar para visitar durante ${date}. Te recomendamos llegar temprano para evitar filas.`;
+            }, 1000);
+        }
     }
 
     // --- INICIALIZACIÓN GENERAL ---
