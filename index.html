@@ -795,106 +795,114 @@
         }
     }
 
-    /* BUSCADOR CON CONSULTA DIRECTA A GEMINI 3.6 FLASH Y ROTACIÓN DE CLAVES */
-    async function searchCustomAI(type) {
-        const isShow = type === 'shows';
-        const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
-        const containerId = isShow ? 'shows-container' : 'recom-container';
-        const inputEl = document.getElementById(inputId);
-        
-        if (!inputEl) return;
-        const userQuery = inputEl.value.trim();
+ /* BUSCADOR CON CONSULTA DIRECTA, MAYOR TIEMPO DE ESPERA Y PAUSA ENTRE REINTENTOS */
+async function searchCustomAI(type) {
+    const isShow = type === 'shows';
+    const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
+    const containerId = isShow ? 'shows-container' : 'recom-container';
+    const inputEl = document.getElementById(inputId);
+    
+    if (!inputEl) return;
+    const userQuery = inputEl.value.trim();
 
-        if (!userQuery) {
-            alert("Escribí lo que querés consultar (ej: spots en Nagano en otoño, The Seatbelts...).");
-            return;
-        }
-
-        const container = document.getElementById(containerId);
-        
-        // Indicador de carga
-        const loadingCard = document.createElement('div');
-        loadingCard.id = 'temp-loading-card';
-        loadingCard.style.cssText = "padding:1rem; background:#fff; border:1px solid var(--border); border-radius:6px; margin-bottom:1rem; color:var(--text-muted); font-style:italic;";
-        loadingCard.innerHTML = `🔎 Consultando a Gemini sobre "${userQuery}"...`;
-        container.prepend(loadingCard);
-
-        const keys = getApiKeys();
-        if (!keys || keys.length === 0) {
-            const loadingEl = document.getElementById('temp-loading-card');
-            if (loadingEl) loadingEl.remove();
-            alert("No hay API Keys guardadas.");
-            return;
-        }
-
-        let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ') || "Tokio, Kioto, Osaka, Nagano";
-
-        const promptText = `Eres un guía experto en turismo, cultura pop y espectáculos en Japón. 
-        El usuario viaja por (${cities}) y busca información específica sobre: "${userQuery}".
-        
-        Instrucciones:
-        1. Brinda datos concretos, spots recomendados, eventos o recomendaciones sobre esa consulta puntual.
-        2. Responde en español con formato Markdown claro y estructurado (listas, negritas).`;
-
-        let resultText = "";
-
-        // Rotación e intento con el modelo estable Gemini 3.6 Flash
-        for (let i = 0; i < keys.length; i++) {
-            const activeKey = keys[(currentKeyIndex + i) % keys.length];
-            
-            const endpoints = [
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`
-            ];
-
-            for (let url of endpoints) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                    });
-
-                    const data = await response.json();
-                    if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                        resultText = data.candidates[0].content.parts[0].text;
-                        currentKeyIndex = (currentKeyIndex + i) % keys.length;
-                        break;
-                    }
-                } catch (err) {
-                    console.warn(`Error con clave ${i + 1}, reintentando...`);
-                }
-            }
-
-            if (resultText) break;
-        }
-
-        const loadingEl = document.getElementById('temp-loading-card');
-        if (loadingEl) loadingEl.remove();
-
-        if (resultText) {
-            const formattedBody = formatMarkdown(resultText);
-            
-            const newAccordion = `
-                <details class="compact-item" open style="border: 2px solid var(--primary); margin-bottom:0.8rem;">
-                    <summary class="compact-summary" style="background: #fef2f2;">
-                        <span class="summary-title">✨ 🎯 Búsqueda: ${userQuery}</span>
-                        <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta IA en vivo</span>
-                    </summary>
-                    <div class="compact-content">
-                        ${formattedBody}
-                    </div>
-                </details>
-            `;
-
-            container.innerHTML = newAccordion + container.innerHTML;
-            inputEl.value = '';
-
-            saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
-        } else {
-            alert("Todas las API Keys de Gemini fallaron o agotaron cuota por un momento. Intenta nuevamente en 1 minuto o limpia el localStorage.");
-        }
+    if (!userQuery) {
+        alert("Escribí lo que querés consultar (ej: spots en Nagano, festivales en Kioto...).");
+        return;
     }
+
+    const container = document.getElementById(containerId);
+    
+    // Indicador visual de carga
+    const loadingCard = document.createElement('div');
+    loadingCard.id = 'temp-loading-card';
+    loadingCard.style.cssText = "padding:1rem; background:#fff; border:1px solid var(--border); border-radius:6px; margin-bottom:1rem; color:var(--text-muted); font-style:italic;";
+    loadingCard.innerHTML = `🔎 Consultando a Gemini sobre "${userQuery}"... Por favor aguardá unos segundos.`;
+    container.prepend(loadingCard);
+
+    const keys = getApiKeys();
+    if (!keys || keys.length === 0) {
+        document.getElementById('temp-loading-card')?.remove();
+        alert("No hay API Keys guardadas en el navegador.");
+        return;
+    }
+
+    let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ') || "Tokio, Kioto, Osaka, Nagano";
+
+    const promptText = `Eres un guía experto en turismo, cultura pop y espectáculos en Japón. 
+    El usuario viaja por (${cities}) y busca información específica sobre: "${userQuery}".
+    
+    Instrucciones:
+    1. Brinda datos concretos, spots recomendados, eventos o recomendaciones sobre esa consulta puntual.
+    2. Responde en español con formato Markdown claro y estructurado (listas, negritas).`;
+
+    let resultText = "";
+
+    // Recorremos las claves guardadas sin apurar los reintentos
+    for (let i = 0; i < keys.length; i++) {
+        const activeKey = keys[(currentKeyIndex + i) % keys.length];
+        
+        const endpoints = [
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`
+        ];
+
+        for (let url of endpoints) {
+            try {
+                // Configuramos un controlador de tiempo límite (AbortController) de 15 segundos
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 Segundos de espera
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId); // Limpiamos el temporizador si respondió a tiempo
+
+                const data = await response.json();
+                if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                    resultText = data.candidates[0].content.parts[0].text;
+                    currentKeyIndex = (currentKeyIndex + i) % keys.length;
+                    break;
+                }
+            } catch (err) {
+                console.warn(`Intento con clave ${i + 1} demoró o falló. Esperando 2 segundos antes del siguiente intento...`);
+                // Pausa de cortesía de 2 segundos para no quemar las otras claves
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        if (resultText) break;
+    }
+
+    document.getElementById('temp-loading-card')?.remove();
+
+    if (resultText) {
+        const formattedBody = formatMarkdown(resultText);
+        
+        const newAccordion = `
+            <details class="compact-item" open style="border: 2px solid var(--primary); margin-bottom:0.8rem;">
+                <summary class="compact-summary" style="background: #fef2f2;">
+                    <span class="summary-title">✨ 🎯 Búsqueda: ${userQuery}</span>
+                    <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta IA en vivo</span>
+                </summary>
+                <div class="compact-content">
+                    ${formattedBody}
+                </div>
+            </details>
+        `;
+
+        container.innerHTML = newAccordion + container.innerHTML;
+        inputEl.value = '';
+
+        // Sincroniza y guarda en la planilla de Google Sheets
+        saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
+    } else {
+        alert("Todas las API Keys de Gemini demoraron en responder o agotaron cuota por un momento. Probá de nuevo en 1 minuto.");
+    }
+}
 
     async function saveCustomRecommendationToSheet(title, text, sheetName) {
         try {
