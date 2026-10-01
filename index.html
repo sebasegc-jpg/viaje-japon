@@ -324,7 +324,7 @@
                 </form>
 
                 <div style="background:#fff; padding:1.2rem; border-radius:8px; border:1px solid var(--border); width:340px; height:fit-content;">
-                    <h4 style="margin-bottom:0.8rem; color:var(--text-dark);">⚖️ Balance & Cuentas Claras</h4>
+                    <h4 style="margin-bottom:0.8rem; color:var(--text-dark);">⚖️️ Balance & Cuentas Claras</h4>
                     
                     <div style="margin-bottom:0.8rem; padding:0.8rem; background:#f0fdf4; border-radius:6px;">
                         <p id="lbl-p1" style="font-size:0.85rem; color:#166534; font-weight:bold;">Total Pagado por V1:</p>
@@ -488,11 +488,11 @@
         'osaka': [34.6937, 135.5023]
     };
 
-    // OBTENER API KEYS GUARDADAS
+    // OBTENER HASTA 3 API KEYS GUARDADAS SEPARADAS POR COMA
     function getApiKeys() {
         let raw = localStorage.getItem('GEMINI_API_KEYS') || localStorage.getItem('GEMINI_API_KEY');
         if (!raw) {
-            raw = prompt("Ingresá tus API Keys de Gemini (separadas por coma):");
+            raw = prompt("Ingresá tus API Keys de Gemini (puedes pegar hasta 3 separadas por coma):");
             if (raw) {
                 raw = raw.trim();
                 localStorage.setItem('GEMINI_API_KEYS', raw);
@@ -795,7 +795,7 @@
         }
     }
 
-    /* BUSCADOR CON CONSULTA DIRECTA A GEMINI ROTANDO SUS 3 CLAVES */
+    /* BUSCADOR CON CONSULTA DIRECTA A GEMINI 3.6 FLASH Y ROTACIÓN DE CLAVES */
     async function searchCustomAI(type) {
         const isShow = type === 'shows';
         const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
@@ -838,12 +838,13 @@
 
         let resultText = "";
 
+        // Rotación e intento con el modelo estable Gemini 3.6 Flash
         for (let i = 0; i < keys.length; i++) {
             const activeKey = keys[(currentKeyIndex + i) % keys.length];
             
             const endpoints = [
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(activeKey)}`
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`
             ];
 
             for (let url of endpoints) {
@@ -891,7 +892,7 @@
 
             saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
         } else {
-            alert("Todas las API Keys de Gemini fallaron o agotaron cuota por un momento. Intenta nuevamente en 1 minuto.");
+            alert("Todas las API Keys de Gemini fallaron o agotaron cuota por un momento. Intenta nuevamente en 1 minuto o limpia el localStorage.");
         }
     }
 
